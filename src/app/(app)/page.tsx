@@ -33,13 +33,13 @@ export default async function DashboardPage({
 
   const [accounts, deltas, monthTransactions, recentTransactions] = await Promise.all([
     prisma.account.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
-    getAccountBalanceDeltas(userId),
+    getAccountBalanceDeltas(userId, { asOf: end }),
     prisma.transaction.findMany({
       where: { userId, type: { in: ["INCOME", "EXPENSE"] }, date: { gte: start, lte: end } },
       select: { type: true, amount: true },
     }),
     prisma.transaction.findMany({
-      where: { userId },
+      where: { userId, date: { lte: end } },
       orderBy: { date: "desc" },
       take: 5,
       include: { account: true, category: true, fromAccount: true, toAccount: true },
@@ -48,7 +48,7 @@ export default async function DashboardPage({
 
   const balances = accounts.map((a) => ({
     account: a,
-    balance: applyDelta(Number(a.openingBalance), deltas, a.id),
+    balance: applyDelta(a, deltas, end),
   }));
   // All accounts are INR-only for now — cross-currency conversion into this
   // total lands in Phase 8.
@@ -68,10 +68,7 @@ export default async function DashboardPage({
     <div className="max-w-md p-6">
       <h1 className="text-xl font-semibold text-zinc-900">Dashboard</h1>
 
-      <p className="mt-4 text-sm text-zinc-500">Overall balance (as of today)</p>
-      <p className="text-3xl font-semibold text-zinc-900">{formatMoney(overallBalance, "INR")}</p>
-
-      <div className="mt-8 flex items-center justify-between">
+      <div className="mt-4 flex items-center justify-between">
         <Link
           href={`/?month=${prevMonth}`}
           className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
@@ -87,7 +84,10 @@ export default async function DashboardPage({
         </Link>
       </div>
 
-      <div className="mt-4 flex flex-col items-center">
+      <p className="mt-4 text-sm text-zinc-500">Overall balance as of end of {monthLabel(monthKey)}</p>
+      <p className="text-3xl font-semibold text-zinc-900">{formatMoney(overallBalance, "INR")}</p>
+
+      <div className="mt-6 flex flex-col items-center">
         <BalanceRing
           lap1Percent={ring.lap1Percent}
           lap2Percent={ring.lap2Percent}

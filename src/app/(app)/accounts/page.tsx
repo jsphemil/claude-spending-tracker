@@ -60,10 +60,7 @@ export default async function AccountsPage() {
                   </div>
                 </div>
                 <p className="text-sm font-medium text-zinc-900">
-                  {formatMoney(
-                    applyDelta(Number(account.openingBalance), deltas, account.id),
-                    account.currency
-                  )}
+                  {formatMoney(applyDelta(account, deltas), account.currency)}
                 </p>
               </Link>
             </li>

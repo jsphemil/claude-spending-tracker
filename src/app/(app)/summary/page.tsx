@@ -94,23 +94,19 @@ export default async function SummaryPage({
   let creditCardDebt: number | null = null;
 
   if (selectedAccount) {
-    const opening = Number(selectedAccount.openingBalance);
-    carryForward = applyDelta(opening, deltasAtStart, selectedAccount.id);
-    endingBalance = applyDelta(opening, deltasAtEnd, selectedAccount.id);
+    carryForward = applyDelta(selectedAccount, deltasAtStart, periodStartCutoff);
+    endingBalance = applyDelta(selectedAccount, deltasAtEnd, end);
     currency = selectedAccount.currency;
   } else {
     carryForward = accounts.reduce(
-      (sum, a) => sum + applyDelta(Number(a.openingBalance), deltasAtStart, a.id),
+      (sum, a) => sum + applyDelta(a, deltasAtStart, periodStartCutoff),
       0
     );
-    endingBalance = accounts.reduce(
-      (sum, a) => sum + applyDelta(Number(a.openingBalance), deltasAtEnd, a.id),
-      0
-    );
+    endingBalance = accounts.reduce((sum, a) => sum + applyDelta(a, deltasAtEnd, end), 0);
     const creditCardAccounts = accounts.filter((a) => a.type === "CREDIT_CARD");
     if (creditCardAccounts.length > 0) {
       creditCardDebt = creditCardAccounts.reduce((sum, a) => {
-        const bal = applyDelta(Number(a.openingBalance), deltasAtEnd, a.id);
+        const bal = applyDelta(a, deltasAtEnd, end);
         return sum + Math.max(0, -bal);
       }, 0);
     }

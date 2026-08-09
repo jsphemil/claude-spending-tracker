@@ -38,7 +38,7 @@ export default async function AccountDetailPage({
 
   const [account, deltas, monthTransactions] = await Promise.all([
     prisma.account.findFirst({ where: { id: accountId, userId } }),
-    getAccountBalanceDeltas(userId),
+    getAccountBalanceDeltas(userId, { asOf: end }),
     prisma.transaction.findMany({
       where: {
         userId,
@@ -56,7 +56,7 @@ export default async function AccountDetailPage({
   ]);
   if (!account) notFound();
 
-  const balance = applyDelta(Number(account.openingBalance), deltas, account.id);
+  const balance = applyDelta(account, deltas, end);
   const availableCredit =
     account.type === "CREDIT_CARD" && account.creditLimit
       ? Number(account.creditLimit) - Math.max(0, -balance)
@@ -140,18 +140,6 @@ export default async function AccountDetailPage({
         </div>
       </div>
 
-      <p className="mt-6 text-sm text-zinc-500">Current balance</p>
-      <p className="text-3xl font-semibold text-zinc-900">
-        {formatMoney(balance, account.currency)}
-      </p>
-
-      {account.type === "CREDIT_CARD" && account.creditLimit && (
-        <div className="mt-2 space-y-1 text-sm text-zinc-600">
-          <p>Credit limit: {formatMoney(Number(account.creditLimit), account.currency)}</p>
-          <p>Available credit: {formatMoney(availableCredit!, account.currency)}</p>
-        </div>
-      )}
-
       <div className="mt-8 flex items-center justify-between">
         <Link
           href={`/accounts/${account.id}?month=${prevMonth}`}
@@ -168,7 +156,19 @@ export default async function AccountDetailPage({
         </Link>
       </div>
 
-      <div className="mt-4 flex flex-col items-center">
+      <p className="mt-4 text-sm text-zinc-500">Balance as of end of {monthLabel(monthKey)}</p>
+      <p className="text-3xl font-semibold text-zinc-900">
+        {formatMoney(balance, account.currency)}
+      </p>
+
+      {account.type === "CREDIT_CARD" && account.creditLimit && (
+        <div className="mt-2 space-y-1 text-sm text-zinc-600">
+          <p>Credit limit: {formatMoney(Number(account.creditLimit), account.currency)}</p>
+          <p>Available credit: {formatMoney(availableCredit!, account.currency)}</p>
+        </div>
+      )}
+
+      <div className="mt-6 flex flex-col items-center">
         <BalanceRing
           lap1Percent={ring.lap1Percent}
           lap2Percent={ring.lap2Percent}

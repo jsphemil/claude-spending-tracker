@@ -50,6 +50,17 @@ export async function getAccountBalanceDeltas(
   return deltas;
 }
 
-export function applyDelta(openingBalance: number, deltas: Record<string, number>, accountId: string) {
-  return openingBalance + (deltas[accountId] ?? 0);
+type BalanceAccount = {
+  id: string;
+  openingBalance: number | string | { toString(): string };
+  openingBalanceDate: Date;
+};
+
+// An account contributes nothing to a balance computed as of a date before
+// it existed — otherwise its opening balance (dated whenever the account
+// was created) leaks backward into every earlier period, including ones
+// from before the account existed at all.
+export function applyDelta(account: BalanceAccount, deltas: Record<string, number>, asOf?: Date) {
+  if (asOf && asOf < account.openingBalanceDate) return 0;
+  return Number(account.openingBalance) + (deltas[account.id] ?? 0);
 }
