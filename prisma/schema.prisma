@@ -223,10 +223,11 @@ model RecurringException {
 // occasion it belongs to (a trip, an event) — a transaction keeps its normal
 // account and category, the tag is additional context spanning both.
 model Tag {
-  id        String   @id @default(cuid())
-  userId    String   @db.Uuid
-  name      String
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  userId          String   @db.Uuid
+  name            String
+  isSystemDefault Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
   profile        Profile            @relation(fields: [userId], references: [id])
   transactions   TransactionTag[]
