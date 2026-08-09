@@ -5,14 +5,35 @@ import { getVerifiedUserId } from "@/lib/supabase/server";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/constants/accounts";
 import { formatMoney } from "@/lib/services/format";
 import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
+import {
+  monthLabel,
+  monthParamString,
+  monthRange,
+  parseMonthParam,
+  shiftMonth,
+} from "@/lib/services/calendar";
 import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
 import { ensureMaterialized } from "@/lib/services/recurrence";
 
+type Bucket = { key: string; name: string; icon: string; total: number };
+
+function addToBucket(map: Map<string, Bucket>, key: string, name: string, icon: string, amount: number) {
+  const entry = map.get(key) ?? { key, name, icon, total: 0 };
+  entry.total += amount;
+  map.set(key, entry);
+}
+
+function sortedBuckets(map: Map<string, Bucket>) {
+  return [...map.values()].sort((a, b) => b.total - a.total);
+}
+
 export default async function AccountDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ accountId: string }>;
+  searchParams: Promise<{ month?: string }>;
 }) {
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
@@ -20,16 +41,20 @@ export default async function AccountDetailPage({
   await ensureMaterialized(userId);
 
   const { accountId } = await params;
-  const [account, deltas, transactions] = await Promise.all([
+  const { month } = await searchParams;
+  const monthKey = parseMonthParam(month);
+  const { start, end } = monthRange(monthKey);
+
+  const [account, deltas, monthTransactions] = await Promise.all([
     prisma.account.findFirst({ where: { id: accountId, userId } }),
     getAccountBalanceDeltas(userId),
     prisma.transaction.findMany({
       where: {
         userId,
+        date: { gte: start, lte: end },
         OR: [{ accountId }, { fromAccountId: accountId }, { toAccountId: accountId }],
       },
       orderBy: { date: "desc" },
-      take: 20,
       include: {
         category: true,
         fromAccount: true,
@@ -45,6 +70,62 @@ export default async function AccountDetailPage({
     account.type === "CREDIT_CARD" && account.creditLimit
       ? Number(account.creditLimit) - Math.max(0, -balance)
       : null;
+
+  let income = 0;
+  let expense = 0;
+  let transferIn = 0;
+  let transferOut = 0;
+  const incomeByCategory = new Map<string, Bucket>();
+  const expenseByCategory = new Map<string, Bucket>();
+  const transferInByAccount = new Map<string, Bucket>();
+  const transferOutByAccount = new Map<string, Bucket>();
+
+  for (const t of monthTransactions) {
+    const amt = Number(t.amount);
+    if (t.type === "INCOME") {
+      income += amt;
+      addToBucket(
+        incomeByCategory,
+        t.categoryId ?? "uncategorized",
+        t.category?.name ?? "Uncategorized",
+        t.category?.icon ?? "❓",
+        amt
+      );
+    } else if (t.type === "EXPENSE") {
+      expense += amt;
+      addToBucket(
+        expenseByCategory,
+        t.categoryId ?? "uncategorized",
+        t.category?.name ?? "Uncategorized",
+        t.category?.icon ?? "❓",
+        amt
+      );
+    } else {
+      if (t.toAccountId === accountId) {
+        transferIn += amt;
+        addToBucket(
+          transferInByAccount,
+          t.fromAccountId ?? "unknown",
+          t.fromAccount?.name ?? "Unknown account",
+          t.fromAccount?.icon ?? "🏦",
+          amt
+        );
+      }
+      if (t.fromAccountId === accountId) {
+        transferOut += amt;
+        addToBucket(
+          transferOutByAccount,
+          t.toAccountId ?? "unknown",
+          t.toAccount?.name ?? "Unknown account",
+          t.toAccount?.icon ?? "🏦",
+          amt
+        );
+      }
+    }
+  }
+
+  const prevMonth = monthParamString(shiftMonth(monthKey, -1));
+  const nextMonth = monthParamString(shiftMonth(monthKey, 1));
 
   return (
     <div className="max-w-md p-6">
@@ -105,20 +186,94 @@ export default async function AccountDetailPage({
 
       <div className="mt-10">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-900">Recent transactions</h2>
+          <h2 className="text-sm font-semibold text-zinc-900">Monthly summary</h2>
           <Link
             href={`/transactions?accountId=${account.id}`}
             className="text-sm font-medium text-zinc-500 hover:underline"
           >
-            View all
+            Full history
           </Link>
         </div>
 
-        {transactions.length === 0 ? (
-          <p className="mt-3 text-sm text-zinc-600">No transactions yet.</p>
+        <div className="mt-3 flex items-center justify-between">
+          <Link
+            href={`/accounts/${account.id}?month=${prevMonth}`}
+            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+          >
+            ← Prev
+          </Link>
+          <p className="text-sm font-medium text-zinc-900">{monthLabel(monthKey)}</p>
+          <Link
+            href={`/accounts/${account.id}?month=${nextMonth}`}
+            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+          >
+            Next →
+          </Link>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="rounded-lg border border-zinc-200 bg-white p-3">
+            <p className="text-xs text-zinc-500">Income</p>
+            <p className="text-lg font-semibold text-emerald-700">
+              {formatMoney(income, account.currency)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-zinc-200 bg-white p-3">
+            <p className="text-xs text-zinc-500">Expense</p>
+            <p className="text-lg font-semibold text-rose-700">
+              {formatMoney(expense, account.currency)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-zinc-200 bg-white p-3">
+            <p className="text-xs text-zinc-500">Transfers in</p>
+            <p className="text-lg font-semibold text-blue-700">
+              {formatMoney(transferIn, account.currency)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-zinc-200 bg-white p-3">
+            <p className="text-xs text-zinc-500">Transfers out</p>
+            <p className="text-lg font-semibold text-blue-700">
+              {formatMoney(transferOut, account.currency)}
+            </p>
+          </div>
+        </div>
+
+        {[
+          { title: "Income by category", buckets: sortedBuckets(incomeByCategory), color: "text-emerald-700" },
+          { title: "Expense by category", buckets: sortedBuckets(expenseByCategory), color: "text-rose-700" },
+          { title: "Transfers in by account", buckets: sortedBuckets(transferInByAccount), color: "text-blue-700" },
+          { title: "Transfers out by account", buckets: sortedBuckets(transferOutByAccount), color: "text-blue-700" },
+        ]
+          .filter((section) => section.buckets.length > 0)
+          .map((section) => (
+            <div key={section.title} className="mt-4">
+              <p className="text-xs font-medium text-zinc-500">{section.title}</p>
+              <ul className="mt-1 space-y-1">
+                {section.buckets.map((b) => (
+                  <li key={b.key} className="flex items-center justify-between text-sm">
+                    <span className="text-zinc-700">
+                      {b.icon} {b.name}
+                    </span>
+                    <span className={`font-medium ${section.color}`}>
+                      {formatMoney(b.total, account.currency)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-sm font-semibold text-zinc-900">
+          {monthLabel(monthKey)} transactions
+        </h2>
+
+        {monthTransactions.length === 0 ? (
+          <p className="mt-3 text-sm text-zinc-600">No transactions this month.</p>
         ) : (
           <ul className="mt-3 space-y-2">
-            {transactions.map((t) => (
+            {monthTransactions.map((t) => (
               <li
                 key={t.id}
                 className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3 py-2"
@@ -168,7 +323,7 @@ export default async function AccountDetailPage({
                   </Link>
                   <DeleteTransactionButton
                     transactionId={t.id}
-                    redirectTo={`/accounts/${account.id}`}
+                    redirectTo={`/accounts/${account.id}?month=${monthParamString(monthKey)}`}
                     isRecurring={!!t.recurringRuleId}
                   />
                 </div>

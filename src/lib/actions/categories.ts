@@ -8,6 +8,11 @@ import { parseCategoryFormData } from "@/lib/validation/category";
 
 export type CategoryActionState = { error: string | null };
 
+export type InlineCategoryState = {
+  error: string | null;
+  category: { id: string; name: string; icon: string; type: "INCOME" | "EXPENSE" } | null;
+};
+
 const DUPLICATE_ERROR = "You already have a category with that name and type.";
 
 export async function createCategory(
@@ -32,6 +37,35 @@ export async function createCategory(
   }
 
   redirect(`/categories?type=${parsed.data.type}`);
+}
+
+// Used by the transaction form's inline "+ Add category" quick-add — returns
+// the created category instead of redirecting, so the caller can select it
+// without leaving the transaction entry flow.
+export async function createCategoryInline(
+  _prevState: InlineCategoryState,
+  formData: FormData
+): Promise<InlineCategoryState> {
+  const userId = await getVerifiedUserId();
+  if (!userId) redirect("/login");
+
+  const parsed = parseCategoryFormData(formData);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input", category: null };
+  }
+
+  try {
+    const created = await prisma.category.create({ data: { ...parsed.data, userId } });
+    return {
+      error: null,
+      category: { id: created.id, name: created.name, icon: created.icon, type: created.type },
+    };
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return { error: DUPLICATE_ERROR, category: null };
+    }
+    throw e;
+  }
 }
 
 export async function updateCategory(

@@ -1,8 +1,10 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { TransactionActionState } from "@/lib/actions/transactions";
 import { RECURRENCE_UNITS } from "@/lib/validation/recurring";
+import { InlineCategoryCreate } from "@/components/categories/InlineCategoryCreate";
 
 const initialState: TransactionActionState = { error: null };
 
@@ -73,13 +75,17 @@ export function TransactionForm({
   /** Set when editing a transaction that's part of a recurring series. */
   recurringInfo?: { scheduleLabel: string } | null;
 }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(action, initialState);
   const values = { ...emptyValues, ...defaultValues };
   const [type, setType] = useState<TransactionType>(values.type);
   const [recurring, setRecurring] = useState(false);
   const [choosingScope, setChoosingScope] = useState(false);
+  const [localCategories, setLocalCategories] = useState(categories);
+  const [categoryId, setCategoryId] = useState(values.categoryId);
+  const [addingCategory, setAddingCategory] = useState(false);
 
-  const visibleCategories = categories.filter((c) => c.type === type);
+  const visibleCategories = localCategories.filter((c) => c.type === type);
   const isRecurringEdit = recurringInfo !== null;
 
   return (
@@ -89,7 +95,11 @@ export function TransactionForm({
           <button
             key={opt.value}
             type="button"
-            onClick={() => setType(opt.value)}
+            onClick={() => {
+              setType(opt.value);
+              setCategoryId("");
+              setAddingCategory(false);
+            }}
             className={`flex-1 rounded px-3 py-1.5 text-sm font-medium ${
               type === opt.value
                 ? "bg-white text-zinc-900 shadow-sm"
@@ -214,14 +224,24 @@ export function TransactionForm({
             </select>
           </div>
           <div className="space-y-1">
-            <label htmlFor="categoryId" className="text-sm font-medium text-zinc-700">
-              Category
-            </label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="categoryId" className="text-sm font-medium text-zinc-700">
+                Category
+              </label>
+              <button
+                type="button"
+                onClick={() => setAddingCategory((v) => !v)}
+                className="text-xs font-medium text-zinc-500 hover:underline"
+              >
+                {addingCategory ? "Cancel" : "+ New category"}
+              </button>
+            </div>
             <select
               id="categoryId"
               name="categoryId"
               required
-              defaultValue={values.categoryId}
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
               className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
             >
               <option value="" disabled>
@@ -233,6 +253,17 @@ export function TransactionForm({
                 </option>
               ))}
             </select>
+            {addingCategory && (
+              <InlineCategoryCreate
+                type={type === "INCOME" ? "INCOME" : "EXPENSE"}
+                onCreated={(category) => {
+                  setLocalCategories((prev) => [...prev, category]);
+                  setCategoryId(category.id);
+                  setAddingCategory(false);
+                }}
+                onCancel={() => setAddingCategory(false)}
+              />
+            )}
           </div>
         </div>
       )}
@@ -365,14 +396,24 @@ export function TransactionForm({
           </div>
         </div>
       ) : (
-        <button
-          type={isRecurringEdit ? "button" : "submit"}
-          onClick={isRecurringEdit ? () => setChoosingScope(true) : undefined}
-          disabled={pending}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
-        >
-          {pending ? "Saving…" : submitLabel}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type={isRecurringEdit ? "button" : "submit"}
+            onClick={isRecurringEdit ? () => setChoosingScope(true) : undefined}
+            disabled={pending}
+            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+          >
+            {pending ? "Saving…" : submitLabel}
+          </button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            disabled={pending}
+            className="rounded-md px-4 py-2 text-sm font-medium text-zinc-500 hover:underline disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
       )}
     </form>
   );
