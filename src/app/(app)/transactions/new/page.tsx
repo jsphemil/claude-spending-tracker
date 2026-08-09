@@ -7,15 +7,16 @@ import { createTransaction } from "@/lib/actions/transactions";
 export default async function NewTransactionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; accountId?: string }>;
+  searchParams: Promise<{ type?: string; accountId?: string; date?: string }>;
 }) {
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
 
-  const { type: rawType, accountId } = await searchParams;
+  const { type: rawType, accountId, date } = await searchParams;
   const type = ["INCOME", "EXPENSE", "TRANSFER"].includes(rawType ?? "")
     ? (rawType as "INCOME" | "EXPENSE" | "TRANSFER")
     : "EXPENSE";
+  const isValidDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date);
 
   const [accounts, categories] = await Promise.all([
     prisma.account.findMany({
@@ -43,6 +44,7 @@ export default async function NewTransactionPage({
             type,
             accountId: type !== "TRANSFER" ? accountId : undefined,
             fromAccountId: type === "TRANSFER" ? accountId : undefined,
+            date: isValidDate ? date : undefined,
           }}
         />
       </div>

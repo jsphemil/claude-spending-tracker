@@ -65,12 +65,20 @@ export default async function TransactionsPage({
     <div className="p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-zinc-900">Transactions</h1>
-        <Link
-          href="/transactions/new"
-          className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-        >
-          + New Transaction
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/transactions/calendar"
+            className="text-sm font-medium text-zinc-500 hover:underline"
+          >
+            Calendar
+          </Link>
+          <Link
+            href="/transactions/new"
+            className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+          >
+            + New Transaction
+          </Link>
+        </div>
       </div>
 
       <div className="mt-4">
