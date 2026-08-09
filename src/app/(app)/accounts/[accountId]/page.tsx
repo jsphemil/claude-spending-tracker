@@ -15,18 +15,9 @@ import {
 import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
 import { ensureMaterialized } from "@/lib/services/recurrence";
-
-type Bucket = { key: string; name: string; icon: string; total: number };
-
-function addToBucket(map: Map<string, Bucket>, key: string, name: string, icon: string, amount: number) {
-  const entry = map.get(key) ?? { key, name, icon, total: 0 };
-  entry.total += amount;
-  map.set(key, entry);
-}
-
-function sortedBuckets(map: Map<string, Bucket>) {
-  return [...map.values()].sort((a, b) => b.total - a.total);
-}
+import { addToBucket, sortedBuckets, type Bucket } from "@/lib/services/breakdown";
+import { getCreditRingData, getRegularRingData } from "@/lib/services/ring";
+import { BalanceRing } from "@/components/charts/BalanceRing";
 
 export default async function AccountDetailPage({
   params,
@@ -124,6 +115,17 @@ export default async function AccountDetailPage({
     }
   }
 
+  const owed = Math.max(0, -balance);
+  const ring =
+    account.type === "CREDIT_CARD" && account.creditLimit
+      ? getCreditRingData(owed, Number(account.creditLimit))
+      : getRegularRingData(income, expense);
+  const ringCenterLabel = account.type === "CREDIT_CARD" && account.creditLimit ? "Owed" : monthLabel(monthKey);
+  const ringCenterValue = formatMoney(
+    account.type === "CREDIT_CARD" && account.creditLimit ? owed : expense,
+    account.currency
+  );
+
   const prevMonth = monthParamString(shiftMonth(monthKey, -1));
   const nextMonth = monthParamString(shiftMonth(monthKey, 1));
 
@@ -152,6 +154,28 @@ export default async function AccountDetailPage({
           <p>Available credit: {formatMoney(availableCredit!, account.currency)}</p>
         </div>
       )}
+
+      <div className="mt-6 flex flex-col items-center">
+        <BalanceRing
+          lap1Percent={ring.lap1Percent}
+          lap2Percent={ring.lap2Percent}
+          isOverLimit={ring.isOverLimit}
+          centerLabel={ringCenterLabel}
+          centerValue={ringCenterValue}
+        />
+        {!(account.type === "CREDIT_CARD" && account.creditLimit) && (
+          <div className="mt-3 flex gap-6 text-sm">
+            <div>
+              <span className="text-zinc-500">Income </span>
+              <span className="font-medium text-emerald-700">{formatMoney(income, account.currency)}</span>
+            </div>
+            <div>
+              <span className="text-zinc-500">Expense </span>
+              <span className="font-medium text-rose-700">{formatMoney(expense, account.currency)}</span>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="mt-6 grid grid-cols-3 gap-2">
         <Link

@@ -3,21 +3,29 @@ import { prisma } from "@/lib/db/prisma";
 // Balance is computed from transactions, never stored — see build plan 1.2.
 // This avoids drift whenever a transaction is created/edited/deleted; every
 // code path that changes ledger data is automatically reflected here.
-export async function getAccountBalanceDeltas(userId: string): Promise<Record<string, number>> {
+//
+// `asOf` (inclusive) bounds the deltas to transactions on or before that
+// date — used to compute a balance as it stood at a past point in time
+// (e.g. a period's Carry Forward or Ending Balance), rather than today's.
+export async function getAccountBalanceDeltas(
+  userId: string,
+  opts?: { asOf?: Date }
+): Promise<Record<string, number>> {
+  const dateFilter = opts?.asOf ? { date: { lte: opts.asOf } } : {};
   const [legTotals, transfersOut, transfersIn] = await Promise.all([
     prisma.transaction.groupBy({
       by: ["accountId", "type"],
-      where: { userId, accountId: { not: null } },
+      where: { userId, accountId: { not: null }, ...dateFilter },
       _sum: { amount: true },
     }),
     prisma.transaction.groupBy({
       by: ["fromAccountId"],
-      where: { userId, type: "TRANSFER" },
+      where: { userId, type: "TRANSFER", ...dateFilter },
       _sum: { amount: true },
     }),
     prisma.transaction.groupBy({
       by: ["toAccountId"],
-      where: { userId, type: "TRANSFER" },
+      where: { userId, type: "TRANSFER", ...dateFilter },
       _sum: { amount: true },
     }),
   ]);
