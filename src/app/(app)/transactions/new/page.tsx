@@ -18,7 +18,7 @@ export default async function NewTransactionPage({
     : "EXPENSE";
   const isValidDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date);
 
-  const [accounts, categories] = await Promise.all([
+  const [accounts, categories, tags] = await Promise.all([
     prisma.account.findMany({
       where: { userId },
       orderBy: { createdAt: "asc" },
@@ -29,6 +29,7 @@ export default async function NewTransactionPage({
       orderBy: { name: "asc" },
       select: { id: true, name: true, icon: true, type: true },
     }),
+    prisma.tag.findMany({ where: { userId }, orderBy: { name: "asc" }, select: { name: true } }),
   ]);
 
   return (
@@ -39,6 +40,7 @@ export default async function NewTransactionPage({
           action={createTransaction}
           accounts={accounts}
           categories={categories}
+          existingTagNames={tags.map((t) => t.name)}
           submitLabel="Add transaction"
           allowRecurring
           defaultValues={{

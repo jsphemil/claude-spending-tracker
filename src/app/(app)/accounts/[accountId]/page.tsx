@@ -30,7 +30,12 @@ export default async function AccountDetailPage({
       },
       orderBy: { date: "desc" },
       take: 20,
-      include: { category: true, fromAccount: true, toAccount: true },
+      include: {
+        category: true,
+        fromAccount: true,
+        toAccount: true,
+        tags: { include: { tag: true } },
+      },
     }),
   ]);
   if (!account) notFound();
@@ -128,6 +133,19 @@ export default async function AccountDetailPage({
                     {t.date.toISOString().slice(0, 10)}
                     {t.recurringRuleId ? " · 🔁" : ""}
                   </p>
+                  {t.tags.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {t.tags.map(({ tag }) => (
+                        <Link
+                          key={tag.id}
+                          href={`/tags/${encodeURIComponent(tag.name)}`}
+                          className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 hover:bg-zinc-200"
+                        >
+                          🏷️ {tag.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <p

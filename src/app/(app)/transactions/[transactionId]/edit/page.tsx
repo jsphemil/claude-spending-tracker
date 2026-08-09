@@ -14,10 +14,10 @@ export default async function EditTransactionPage({
   if (!userId) redirect("/login");
 
   const { transactionId } = await params;
-  const [transaction, accounts, categories] = await Promise.all([
+  const [transaction, accounts, categories, tags] = await Promise.all([
     prisma.transaction.findFirst({
       where: { id: transactionId, userId },
-      include: { recurringRule: true },
+      include: { recurringRule: true, tags: { include: { tag: true } } },
     }),
     prisma.account.findMany({
       where: { userId },
@@ -29,6 +29,7 @@ export default async function EditTransactionPage({
       orderBy: { name: "asc" },
       select: { id: true, name: true, icon: true, type: true },
     }),
+    prisma.tag.findMany({ where: { userId }, orderBy: { name: "asc" }, select: { name: true } }),
   ]);
   if (!transaction) notFound();
 
@@ -42,6 +43,7 @@ export default async function EditTransactionPage({
           action={updateTransaction.bind(null, transaction.id)}
           accounts={accounts}
           categories={categories}
+          existingTagNames={tags.map((t) => t.name)}
           submitLabel="Save changes"
           recurringInfo={
             transaction.recurringRule
@@ -62,6 +64,7 @@ export default async function EditTransactionPage({
             categoryId: transaction.categoryId ?? "",
             fromAccountId: transaction.fromAccountId ?? "",
             toAccountId: transaction.toAccountId ?? "",
+            tags: transaction.tags.map((t) => t.tag.name).join(", "),
           }}
         />
       </div>

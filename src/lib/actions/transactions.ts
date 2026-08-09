@@ -12,6 +12,7 @@ import {
   editFutureOccurrences,
   editSingleOccurrence,
 } from "@/lib/services/recurrence";
+import { parseTagInput, resolveTagIds, syncTransactionTags } from "@/lib/services/tags";
 
 export type TransactionActionState = { error: string | null };
 
@@ -50,32 +51,47 @@ export async function createTransaction(
   const refError = await validateReferences(userId, parsed.data);
   if (refError) return { error: refError };
 
+  const tagNames = parseTagInput(formData.get("tags"));
+  const tagIds = await resolveTagIds(userId, tagNames);
+
   if (formData.get("recurring") === "on") {
     const scheduleParsed = parseRecurringScheduleFormData(formData);
     if (!scheduleParsed.success) {
       return { error: scheduleParsed.error.issues[0]?.message ?? "Invalid schedule" };
     }
-    const redirectAccountId = await createRecurringSeries(userId, parsed.data, {
-      intervalCount: scheduleParsed.data.intervalCount,
-      intervalUnit: scheduleParsed.data.intervalUnit,
-      endDate: scheduleParsed.data.endDate ?? null,
-    });
+    const redirectAccountId = await createRecurringSeries(
+      userId,
+      parsed.data,
+      {
+        intervalCount: scheduleParsed.data.intervalCount,
+        intervalUnit: scheduleParsed.data.intervalUnit,
+        endDate: scheduleParsed.data.endDate ?? null,
+      },
+      tagIds
+    );
     redirect(`/accounts/${redirectAccountId}`);
   }
 
   let redirectAccountId: string;
+  let createdId: string;
   if (parsed.data.type === "TRANSFER") {
     const { type, amount, date, description, fromAccountId, toAccountId } = parsed.data;
-    await prisma.transaction.create({
+    const created = await prisma.transaction.create({
       data: { userId, type, amount, date, description, fromAccountId, toAccountId },
     });
+    createdId = created.id;
     redirectAccountId = fromAccountId;
   } else {
     const { type, amount, date, description, accountId, categoryId } = parsed.data;
-    await prisma.transaction.create({
+    const created = await prisma.transaction.create({
       data: { userId, type, amount, date, description, accountId, categoryId },
     });
+    createdId = created.id;
     redirectAccountId = accountId;
+  }
+
+  if (tagIds.length > 0) {
+    await syncTransactionTags(createdId, tagIds);
   }
 
   redirect(`/accounts/${redirectAccountId}`);
@@ -100,6 +116,9 @@ export async function updateTransaction(
   const refError = await validateReferences(userId, parsed.data);
   if (refError) return { error: refError };
 
+  const tagNames = parseTagInput(formData.get("tags"));
+  const tagIds = await resolveTagIds(userId, tagNames);
+
   if (existing.recurringRuleId && existing.occurrenceDate) {
     const scope = formData.get("scope");
     if (scope !== "ONE" && scope !== "FUTURE") {
@@ -112,8 +131,8 @@ export async function updateTransaction(
     };
     const redirectAccountId =
       scope === "ONE"
-        ? await editSingleOccurrence(ref, parsed.data)
-        : await editFutureOccurrences(userId, ref, parsed.data);
+        ? await editSingleOccurrence(ref, parsed.data, tagIds)
+        : await editFutureOccurrences(userId, ref, parsed.data, tagIds);
     redirect(`/accounts/${redirectAccountId}`);
   }
 
@@ -151,6 +170,8 @@ export async function updateTransaction(
     });
     redirectAccountId = accountId;
   }
+
+  await syncTransactionTags(transactionId, tagIds);
 
   redirect(`/accounts/${redirectAccountId}`);
 }

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/prisma";
 import type { RecurrenceUnit, RecurringRule } from "@/generated/prisma/client";
 import type { TransactionInput } from "@/lib/validation/transaction";
+import { syncTransactionTags } from "@/lib/services/tags";
 
 // Real Transaction rows are materialized up to a rolling horizon rather than
 // generated infinitely ahead (indefinite rules have no end date) or computed
@@ -91,6 +92,24 @@ async function materializeRule(rule: RecurringRule): Promise<void> {
     data: occurrences.map((d) => buildOccurrenceData(rule, d)),
     skipDuplicates: true,
   });
+
+  const ruleTags = await prisma.recurringRuleTag.findMany({
+    where: { recurringRuleId: rule.id },
+    select: { tagId: true },
+  });
+  if (ruleTags.length > 0) {
+    const createdRows = await prisma.transaction.findMany({
+      where: { recurringRuleId: rule.id, occurrenceDate: { in: occurrences } },
+      select: { id: true },
+    });
+    await prisma.transactionTag.createMany({
+      data: createdRows.flatMap((row) =>
+        ruleTags.map((rt) => ({ transactionId: row.id, tagId: rt.tagId }))
+      ),
+      skipDuplicates: true,
+    });
+  }
+
   await prisma.recurringRule.update({
     where: { id: rule.id },
     data: { lastGeneratedDate: occurrences[occurrences.length - 1] },
@@ -144,7 +163,8 @@ function redirectAccountId(values: TransactionInput): string {
 export async function createRecurringSeries(
   userId: string,
   values: TransactionInput,
-  schedule: { intervalCount: number; intervalUnit: RecurrenceUnit; endDate: Date | null }
+  schedule: { intervalCount: number; intervalUnit: RecurrenceUnit; endDate: Date | null },
+  tagIds: string[] = []
 ): Promise<string> {
   const rule = await prisma.recurringRule.create({
     data: {
@@ -160,6 +180,13 @@ export async function createRecurringSeries(
     },
   });
 
+  if (tagIds.length > 0) {
+    await prisma.recurringRuleTag.createMany({
+      data: tagIds.map((tagId) => ({ recurringRuleId: rule.id, tagId })),
+      skipDuplicates: true,
+    });
+  }
+
   await materializeRule(rule);
 
   return redirectAccountId(values);
@@ -172,7 +199,8 @@ type RecurringTransactionRef = { id: string; recurringRuleId: string; occurrence
 // amount/account/category/description can change per occurrence.
 export async function editSingleOccurrence(
   existing: RecurringTransactionRef,
-  values: TransactionInput
+  values: TransactionInput,
+  tagIds: string[] = []
 ): Promise<string> {
   await prisma.$transaction([
     prisma.transaction.update({
@@ -202,6 +230,8 @@ export async function editSingleOccurrence(
     }),
   ]);
 
+  await syncTransactionTags(existing.id, tagIds);
+
   return redirectAccountId(values);
 }
 
@@ -215,7 +245,8 @@ export async function editSingleOccurrence(
 export async function editFutureOccurrences(
   userId: string,
   existing: RecurringTransactionRef,
-  values: TransactionInput
+  values: TransactionInput,
+  tagIds: string[] = []
 ): Promise<string> {
   const oldRule = await prisma.recurringRule.findFirstOrThrow({
     where: { id: existing.recurringRuleId, userId },
@@ -234,7 +265,7 @@ export async function editFutureOccurrences(
       where: { userId, recurringRuleId: oldRule.id, occurrenceDate: { gte: splitDate } },
     });
 
-    return tx.recurringRule.create({
+    const created = await tx.recurringRule.create({
       data: {
         userId,
         type: values.type,
@@ -249,6 +280,15 @@ export async function editFutureOccurrences(
         supersedesRuleId: oldRule.id,
       },
     });
+
+    if (tagIds.length > 0) {
+      await tx.recurringRuleTag.createMany({
+        data: tagIds.map((tagId) => ({ recurringRuleId: created.id, tagId })),
+        skipDuplicates: true,
+      });
+    }
+
+    return created;
   });
 
   await materializeRule(newRule);

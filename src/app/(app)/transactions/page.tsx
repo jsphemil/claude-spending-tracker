@@ -52,7 +52,13 @@ export default async function TransactionsPage({
     prisma.transaction.findMany({
       where,
       orderBy: { date: "desc" },
-      include: { account: true, category: true, fromAccount: true, toAccount: true },
+      include: {
+        account: true,
+        category: true,
+        fromAccount: true,
+        toAccount: true,
+        tags: { include: { tag: true } },
+      },
     }),
     prisma.transaction.groupBy({ by: ["type"], where, _sum: { amount: true } }),
     accountId
@@ -122,6 +128,19 @@ export default async function TransactionsPage({
                     {t.description ? ` · ${t.description}` : ""}
                     {t.recurringRuleId ? " · 🔁" : ""}
                   </p>
+                  {t.tags.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {t.tags.map(({ tag }) => (
+                        <Link
+                          key={tag.id}
+                          href={`/tags/${encodeURIComponent(tag.name)}`}
+                          className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 hover:bg-zinc-200"
+                        >
+                          🏷️ {tag.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-4">

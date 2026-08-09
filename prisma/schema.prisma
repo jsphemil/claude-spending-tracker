@@ -26,6 +26,7 @@ model Profile {
   categories     Category[]
   transactions   Transaction[]
   recurringRules RecurringRule[]
+  tags           Tag[]
 }
 
 enum AccountType {
@@ -138,6 +139,7 @@ model Transaction {
   toAccount     Account?       @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Restrict)
   category      Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   recurringRule RecurringRule? @relation(fields: [recurringRuleId], references: [id], onDelete: SetNull)
+  tags          TransactionTag[]
 
   @@unique([recurringRuleId, occurrenceDate])
   @@index([userId, accountId, date])
@@ -199,6 +201,7 @@ model RecurringRule {
 
   transactions Transaction[]
   exceptions   RecurringException[]
+  tags         RecurringRuleTag[]
 
   @@index([userId, isActive])
 }
@@ -213,4 +216,45 @@ model RecurringException {
   rule RecurringRule @relation(fields: [recurringRuleId], references: [id], onDelete: Cascade)
 
   @@unique([recurringRuleId, occurrenceDate])
+}
+
+// Free-form, reusable, and orthogonal to Category (spec 5.3a): a category
+// describes what kind of spending something is, a tag describes the
+// occasion it belongs to (a trip, an event) — a transaction keeps its normal
+// account and category, the tag is additional context spanning both.
+model Tag {
+  id        String   @id @default(cuid())
+  userId    String   @db.Uuid
+  name      String
+  createdAt DateTime @default(now())
+
+  profile        Profile            @relation(fields: [userId], references: [id])
+  transactions   TransactionTag[]
+  recurringRules RecurringRuleTag[]
+
+  @@unique([userId, name])
+}
+
+model TransactionTag {
+  transactionId String
+  tagId         String
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  tag         Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([transactionId, tagId])
+}
+
+// Lets a tag live on a recurring series so every materialized occurrence
+// inherits it automatically at generation time (see materializeRule in
+// lib/services/recurrence.ts), rather than needing to be re-added by hand
+// on each occurrence.
+model RecurringRuleTag {
+  recurringRuleId String
+  tagId           String
+
+  recurringRule RecurringRule @relation(fields: [recurringRuleId], references: [id], onDelete: Cascade)
+  tag           Tag           @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([recurringRuleId, tagId])
 }

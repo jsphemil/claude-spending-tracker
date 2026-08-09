@@ -20,6 +20,7 @@ type TransactionFormValues = {
   categoryId: string;
   fromAccountId: string;
   toAccountId: string;
+  tags: string;
 };
 
 const emptyValues: TransactionFormValues = {
@@ -31,6 +32,7 @@ const emptyValues: TransactionFormValues = {
   categoryId: "",
   fromAccountId: "",
   toAccountId: "",
+  tags: "",
 };
 
 const TYPE_OPTIONS: { value: TransactionType; label: string }[] = [
@@ -50,6 +52,7 @@ export function TransactionForm({
   action,
   accounts,
   categories,
+  existingTagNames = [],
   defaultValues,
   submitLabel,
   allowRecurring = false,
@@ -61,6 +64,8 @@ export function TransactionForm({
   ) => Promise<TransactionActionState>;
   accounts: AccountOption[];
   categories: CategoryOption[];
+  /** Powers the tag autocomplete suggestions. */
+  existingTagNames?: string[];
   defaultValues?: Partial<TransactionFormValues>;
   submitLabel: string;
   /** Only meaningful at creation — shows the "make recurring" toggle. */
@@ -242,6 +247,29 @@ export function TransactionForm({
           defaultValue={values.description}
           className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
         />
+      </div>
+
+      <div className="space-y-1">
+        <label htmlFor="tags" className="text-sm font-medium text-zinc-700">
+          Tags (optional)
+        </label>
+        <input
+          id="tags"
+          name="tags"
+          list="tag-suggestions"
+          placeholder="e.g. Dubai Trip 2026, Work reimbursement"
+          defaultValue={values.tags}
+          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+        />
+        <datalist id="tag-suggestions">
+          {existingTagNames.map((name) => (
+            <option key={name} value={name} />
+          ))}
+        </datalist>
+        <p className="text-xs text-zinc-400">
+          Comma-separated. Groups transactions across accounts and categories around an
+          occasion — reuses an existing tag by name, or creates a new one.
+        </p>
       </div>
 
       {isRecurringEdit && (
