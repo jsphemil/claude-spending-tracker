@@ -22,8 +22,9 @@ model Profile {
   createdAt                     DateTime @default(now())
   updatedAt                     DateTime @updatedAt
 
-  accounts   Account[]
-  categories Category[]
+  accounts     Account[]
+  categories   Category[]
+  transactions Transaction[]
 }
 
 enum AccountType {
@@ -53,6 +54,10 @@ model Account {
 
   profile Profile @relation(fields: [userId], references: [id])
 
+  outgoing     Transaction[] @relation("AccountLeg")
+  transferFrom Transaction[] @relation("TransferFrom")
+  transferTo   Transaction[] @relation("TransferTo")
+
   @@index([userId])
 }
 
@@ -73,7 +78,52 @@ model Category {
   updatedAt       DateTime     @updatedAt
 
   profile Profile @relation(fields: [userId], references: [id])
+  transactions Transaction[]
 
   @@unique([userId, type, name])
   @@index([userId, type])
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+// Income, Expense, and Transfer all live on one model (see build plan 1.5):
+// transfers store both account legs on a single row rather than two linked
+// rows, so edit/delete is atomic and the two ledger sides can never drift.
+// Row-shape validity (which fields are required per `type`) is enforced in
+// the Zod validation layer plus a defense-in-depth CHECK constraint added by
+// hand in this migration (Prisma can't express conditional constraints).
+model Transaction {
+  id          String          @id @default(cuid())
+  userId      String          @db.Uuid
+  type        TransactionType
+  amount      Decimal         @db.Decimal(14, 2) // always positive; sign derived from type + which leg
+  date        DateTime        @db.Date
+  description String?
+
+  accountId     String? // required for INCOME/EXPENSE, null for TRANSFER
+  fromAccountId String? // TRANSFER only
+  toAccountId   String? // TRANSFER only
+  categoryId    String? // required for INCOME/EXPENSE, null for TRANSFER
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation(fields: [userId], references: [id])
+  // Restrict (not the default SetNull for optional relations): account
+  // deletion must be blocked while transactions reference it, per the
+  // Phase 1 decision — a silent SetNull here would let deletion silently
+  // orphan transaction history instead of blocking it.
+  account     Account?  @relation("AccountLeg", fields: [accountId], references: [id], onDelete: Restrict)
+  fromAccount Account?  @relation("TransferFrom", fields: [fromAccountId], references: [id], onDelete: Restrict)
+  toAccount   Account?  @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Restrict)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, accountId, date])
+  @@index([userId, fromAccountId, date])
+  @@index([userId, toAccountId, date])
+  @@index([userId, date])
 }

@@ -51,9 +51,25 @@ export async function updateAccount(
   redirect(`/accounts/${accountId}`);
 }
 
-export async function deleteAccount(accountId: string) {
+export async function deleteAccount(
+  accountId: string,
+  _prevState: AccountActionState,
+  _formData: FormData
+): Promise<AccountActionState> {
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
+
+  const inUseCount = await prisma.transaction.count({
+    where: {
+      userId,
+      OR: [{ accountId }, { fromAccountId: accountId }, { toAccountId: accountId }],
+    },
+  });
+  if (inUseCount > 0) {
+    return {
+      error: `This account has ${inUseCount} transaction${inUseCount === 1 ? "" : "s"} — delete or move them first.`,
+    };
+  }
 
   await prisma.account.deleteMany({ where: { id: accountId, userId } });
 

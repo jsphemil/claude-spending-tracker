@@ -4,15 +4,19 @@ import { prisma } from "@/lib/db/prisma";
 import { getVerifiedUserId } from "@/lib/supabase/server";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/constants/accounts";
 import { formatMoney } from "@/lib/services/format";
+import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
 
 export default async function AccountsPage() {
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
 
-  const accounts = await prisma.account.findMany({
-    where: { userId },
-    orderBy: { createdAt: "asc" },
-  });
+  const [accounts, deltas] = await Promise.all([
+    prisma.account.findMany({
+      where: { userId },
+      orderBy: { createdAt: "asc" },
+    }),
+    getAccountBalanceDeltas(userId),
+  ]);
 
   return (
     <div className="p-6">
@@ -53,7 +57,10 @@ export default async function AccountsPage() {
                   </div>
                 </div>
                 <p className="text-sm font-medium text-zinc-900">
-                  {formatMoney(Number(account.openingBalance), account.currency)}
+                  {formatMoney(
+                    applyDelta(Number(account.openingBalance), deltas, account.id),
+                    account.currency
+                  )}
                 </p>
               </Link>
             </li>
