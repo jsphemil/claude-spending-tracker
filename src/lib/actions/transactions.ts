@@ -4,6 +4,14 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { getVerifiedUserId } from "@/lib/supabase/server";
 import { parseTransactionFormData, type TransactionInput } from "@/lib/validation/transaction";
+import { parseRecurringScheduleFormData } from "@/lib/validation/recurring";
+import {
+  createRecurringSeries,
+  deleteFutureOccurrences,
+  deleteSingleOccurrence,
+  editFutureOccurrences,
+  editSingleOccurrence,
+} from "@/lib/services/recurrence";
 
 export type TransactionActionState = { error: string | null };
 
@@ -42,6 +50,19 @@ export async function createTransaction(
   const refError = await validateReferences(userId, parsed.data);
   if (refError) return { error: refError };
 
+  if (formData.get("recurring") === "on") {
+    const scheduleParsed = parseRecurringScheduleFormData(formData);
+    if (!scheduleParsed.success) {
+      return { error: scheduleParsed.error.issues[0]?.message ?? "Invalid schedule" };
+    }
+    const redirectAccountId = await createRecurringSeries(userId, parsed.data, {
+      intervalCount: scheduleParsed.data.intervalCount,
+      intervalUnit: scheduleParsed.data.intervalUnit,
+      endDate: scheduleParsed.data.endDate ?? null,
+    });
+    redirect(`/accounts/${redirectAccountId}`);
+  }
+
   let redirectAccountId: string;
   if (parsed.data.type === "TRANSFER") {
     const { type, amount, date, description, fromAccountId, toAccountId } = parsed.data;
@@ -78,6 +99,23 @@ export async function updateTransaction(
 
   const refError = await validateReferences(userId, parsed.data);
   if (refError) return { error: refError };
+
+  if (existing.recurringRuleId && existing.occurrenceDate) {
+    const scope = formData.get("scope");
+    if (scope !== "ONE" && scope !== "FUTURE") {
+      return { error: "Choose whether to change just this occurrence or this and all future ones." };
+    }
+    const ref = {
+      id: existing.id,
+      recurringRuleId: existing.recurringRuleId,
+      occurrenceDate: existing.occurrenceDate,
+    };
+    const redirectAccountId =
+      scope === "ONE"
+        ? await editSingleOccurrence(ref, parsed.data)
+        : await editFutureOccurrences(userId, ref, parsed.data);
+    redirect(`/accounts/${redirectAccountId}`);
+  }
 
   let redirectAccountId: string;
   if (parsed.data.type === "TRANSFER") {
@@ -117,11 +155,28 @@ export async function updateTransaction(
   redirect(`/accounts/${redirectAccountId}`);
 }
 
-export async function deleteTransaction(transactionId: string, redirectTo: string) {
+export async function deleteTransaction(transactionId: string, redirectTo: string, formData: FormData) {
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
 
-  await prisma.transaction.deleteMany({ where: { id: transactionId, userId } });
+  const existing = await prisma.transaction.findFirst({ where: { id: transactionId, userId } });
+  if (!existing) redirect(redirectTo);
+
+  if (existing.recurringRuleId && existing.occurrenceDate) {
+    const scope = formData.get("scope");
+    const ref = {
+      id: existing.id,
+      recurringRuleId: existing.recurringRuleId,
+      occurrenceDate: existing.occurrenceDate,
+    };
+    if (scope === "ONE") {
+      await deleteSingleOccurrence(ref);
+    } else if (scope === "FUTURE") {
+      await deleteFutureOccurrences(userId, ref);
+    }
+  } else {
+    await prisma.transaction.deleteMany({ where: { id: transactionId, userId } });
+  }
 
   redirect(redirectTo);
 }

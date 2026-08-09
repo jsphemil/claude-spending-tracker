@@ -1,10 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { login, type AuthActionState } from "@/lib/actions/auth";
 
 const initialState: AuthActionState = { error: null };
+
+function LinkError() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
+  if (!error) return null;
+  return <p className="text-sm text-red-600">{error}</p>;
+}
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(login, initialState);
@@ -12,6 +20,10 @@ export default function LoginPage() {
   return (
     <form action={formAction} className="space-y-4">
       <h2 className="text-lg font-medium text-zinc-900">Log in</h2>
+
+      <Suspense fallback={null}>
+        <LinkError />
+      </Suspense>
 
       <div className="space-y-1">
         <label htmlFor="email" className="text-sm font-medium text-zinc-700">

@@ -5,10 +5,13 @@ import { getVerifiedUserId } from "@/lib/supabase/server";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/constants/accounts";
 import { formatMoney } from "@/lib/services/format";
 import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
+import { ensureMaterialized } from "@/lib/services/recurrence";
 
 export default async function AccountsPage() {
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
+
+  await ensureMaterialized(userId);
 
   const [accounts, deltas] = await Promise.all([
     prisma.account.findMany({

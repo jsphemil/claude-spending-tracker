@@ -40,6 +40,7 @@ export default async function NewTransactionPage({
           accounts={accounts}
           categories={categories}
           submitLabel="Add transaction"
+          allowRecurring
           defaultValues={{
             type,
             accountId: type !== "TRANSFER" ? accountId : undefined,

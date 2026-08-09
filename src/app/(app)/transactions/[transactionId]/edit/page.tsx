@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getVerifiedUserId } from "@/lib/supabase/server";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { updateTransaction } from "@/lib/actions/transactions";
+import { describeSchedule } from "@/lib/services/recurrence";
 
 export default async function EditTransactionPage({
   params,
@@ -14,7 +15,10 @@ export default async function EditTransactionPage({
 
   const { transactionId } = await params;
   const [transaction, accounts, categories] = await Promise.all([
-    prisma.transaction.findFirst({ where: { id: transactionId, userId } }),
+    prisma.transaction.findFirst({
+      where: { id: transactionId, userId },
+      include: { recurringRule: true },
+    }),
     prisma.account.findMany({
       where: { userId },
       orderBy: { createdAt: "asc" },
@@ -28,6 +32,8 @@ export default async function EditTransactionPage({
   ]);
   if (!transaction) notFound();
 
+  const anchorDate = (transaction.occurrenceDate ?? transaction.date).toISOString().slice(0, 10);
+
   return (
     <div className="p-6">
       <h1 className="text-xl font-semibold text-zinc-900">Edit Transaction</h1>
@@ -37,10 +43,20 @@ export default async function EditTransactionPage({
           accounts={accounts}
           categories={categories}
           submitLabel="Save changes"
+          recurringInfo={
+            transaction.recurringRule
+              ? {
+                  scheduleLabel: describeSchedule(
+                    transaction.recurringRule.intervalCount,
+                    transaction.recurringRule.intervalUnit
+                  ),
+                }
+              : null
+          }
           defaultValues={{
             type: transaction.type,
             amount: transaction.amount.toString(),
-            date: transaction.date.toISOString().slice(0, 10),
+            date: anchorDate,
             description: transaction.description ?? "",
             accountId: transaction.accountId ?? "",
             categoryId: transaction.categoryId ?? "",

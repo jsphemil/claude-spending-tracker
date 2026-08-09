@@ -7,6 +7,7 @@ import { formatMoney } from "@/lib/services/format";
 import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
 import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
+import { ensureMaterialized } from "@/lib/services/recurrence";
 
 export default async function AccountDetailPage({
   params,
@@ -15,6 +16,8 @@ export default async function AccountDetailPage({
 }) {
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
+
+  await ensureMaterialized(userId);
 
   const { accountId } = await params;
   const [account, deltas, transactions] = await Promise.all([
@@ -121,7 +124,10 @@ export default async function AccountDetailPage({
                       ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
                       : (t.category?.name ?? "Uncategorized")}
                   </p>
-                  <p className="text-xs text-zinc-500">{t.date.toISOString().slice(0, 10)}</p>
+                  <p className="text-xs text-zinc-500">
+                    {t.date.toISOString().slice(0, 10)}
+                    {t.recurringRuleId ? " · 🔁" : ""}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <p
@@ -145,6 +151,7 @@ export default async function AccountDetailPage({
                   <DeleteTransactionButton
                     transactionId={t.id}
                     redirectTo={`/accounts/${account.id}`}
+                    isRecurring={!!t.recurringRuleId}
                   />
                 </div>
               </li>

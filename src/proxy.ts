@@ -2,6 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/reset-password"];
+// Routes with their own auth (Bearer token for cron, code/token exchange for
+// the email-confirmation callback) rather than a user session — the session
+// redirect below must not gate these, or they'd bounce to /login before
+// their own logic ever runs.
+const BYPASS_PREFIXES = ["/api/", "/auth/"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -31,6 +36,9 @@ export async function proxy(request: NextRequest) {
   const isAuthenticated = !error && !!data;
 
   const { pathname } = request.nextUrl;
+  if (BYPASS_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    return response;
+  }
   const isPublicPath = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
 
   if (!isAuthenticated && !isPublicPath) {

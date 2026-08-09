@@ -14,6 +14,7 @@ import {
   shiftMonth,
   toDateKey,
 } from "@/lib/services/calendar";
+import { ensureMaterialized } from "@/lib/services/recurrence";
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -24,6 +25,8 @@ export default async function CalendarPage({
 }) {
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
+
+  await ensureMaterialized(userId);
 
   const { month } = await searchParams;
   const monthKey = parseMonthParam(month);

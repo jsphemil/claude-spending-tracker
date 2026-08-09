@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/services/format";
 import { TransactionFilters } from "@/components/transactions/TransactionFilters";
 import { SummaryBand } from "@/components/transactions/SummaryBand";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
+import { ensureMaterialized } from "@/lib/services/recurrence";
 import type { Prisma } from "@/generated/prisma/client";
 
 export default async function TransactionsPage({
@@ -20,6 +21,8 @@ export default async function TransactionsPage({
 }) {
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
+
+  await ensureMaterialized(userId);
 
   const { accountId, categoryId, from, to } = await searchParams;
 
@@ -117,6 +120,7 @@ export default async function TransactionsPage({
                   <p className="text-xs text-zinc-500">
                     {t.date.toISOString().slice(0, 10)}
                     {t.description ? ` · ${t.description}` : ""}
+                    {t.recurringRuleId ? " · 🔁" : ""}
                   </p>
                 </div>
               </div>
@@ -142,7 +146,11 @@ export default async function TransactionsPage({
                 >
                   Edit
                 </Link>
-                <DeleteTransactionButton transactionId={t.id} redirectTo="/transactions" />
+                <DeleteTransactionButton
+                  transactionId={t.id}
+                  redirectTo="/transactions"
+                  isRecurring={!!t.recurringRuleId}
+                />
               </div>
             </li>
           ))}

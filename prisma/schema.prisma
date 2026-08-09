@@ -22,9 +22,10 @@ model Profile {
   createdAt                     DateTime @default(now())
   updatedAt                     DateTime @updatedAt
 
-  accounts     Account[]
-  categories   Category[]
-  transactions Transaction[]
+  accounts       Account[]
+  categories     Category[]
+  transactions   Transaction[]
+  recurringRules RecurringRule[]
 }
 
 enum AccountType {
@@ -58,6 +59,10 @@ model Account {
   transferFrom Transaction[] @relation("TransferFrom")
   transferTo   Transaction[] @relation("TransferTo")
 
+  recurringRules             RecurringRule[] @relation("RecurringAccountLeg")
+  recurringTransferFromRules RecurringRule[] @relation("RecurringTransferFrom")
+  recurringTransferToRules   RecurringRule[] @relation("RecurringTransferTo")
+
   @@index([userId])
 }
 
@@ -77,8 +82,9 @@ model Category {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  profile Profile @relation(fields: [userId], references: [id])
-  transactions Transaction[]
+  profile        Profile         @relation(fields: [userId], references: [id])
+  transactions   Transaction[]
+  recurringRules RecurringRule[]
 
   @@unique([userId, type, name])
   @@index([userId, type])
@@ -109,6 +115,16 @@ model Transaction {
   toAccountId   String? // TRANSFER only
   categoryId    String? // required for INCOME/EXPENSE, null for TRANSFER
 
+  // Recurring series (Phase 5). occurrenceDate is the schedule anchor — the
+  // slot this row fills — and never changes; `date` is the actual date shown
+  // and can diverge from it after a "just this one" edit. Plain (non-
+  // recurring) transactions leave all four null; Postgres treats NULLs as
+  // distinct in the unique index below, so they never collide with each other.
+  recurringRuleId      String?
+  occurrenceDate       DateTime? @db.Date
+  isRecurringGenerated Boolean   @default(false)
+  isRecurringException Boolean   @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -117,13 +133,84 @@ model Transaction {
   // deletion must be blocked while transactions reference it, per the
   // Phase 1 decision — a silent SetNull here would let deletion silently
   // orphan transaction history instead of blocking it.
-  account     Account?  @relation("AccountLeg", fields: [accountId], references: [id], onDelete: Restrict)
-  fromAccount Account?  @relation("TransferFrom", fields: [fromAccountId], references: [id], onDelete: Restrict)
-  toAccount   Account?  @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Restrict)
-  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  account       Account?       @relation("AccountLeg", fields: [accountId], references: [id], onDelete: Restrict)
+  fromAccount   Account?       @relation("TransferFrom", fields: [fromAccountId], references: [id], onDelete: Restrict)
+  toAccount     Account?       @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Restrict)
+  category      Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  recurringRule RecurringRule? @relation(fields: [recurringRuleId], references: [id], onDelete: SetNull)
 
+  @@unique([recurringRuleId, occurrenceDate])
   @@index([userId, accountId, date])
   @@index([userId, fromAccountId, date])
   @@index([userId, toAccountId, date])
   @@index([userId, date])
+}
+
+enum RecurrenceUnit {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}
+
+enum RecurringExceptionAction {
+  SKIPPED
+  MODIFIED
+}
+
+// A generator, not a ledger entry — every user-visible occurrence is a real
+// Transaction row (isRecurringGenerated = true) tied back here, so each one
+// can be individually edited/deleted through the same code paths as a plain
+// transaction. See build plan 1.6 and lib/services/recurrence.ts.
+model RecurringRule {
+  id            String          @id @default(cuid())
+  userId        String          @db.Uuid
+  type          TransactionType
+  amount        Decimal         @db.Decimal(14, 2)
+  accountId     String?
+  fromAccountId String?
+  toAccountId   String?
+  categoryId    String?
+  description   String?
+
+  intervalCount Int
+  intervalUnit  RecurrenceUnit
+  startDate     DateTime       @db.Date
+  endDate       DateTime?      @db.Date // null = repeats indefinitely
+  isActive      Boolean        @default(true) // false once superseded by a "this and future" edit, or manually stopped
+
+  // Materialization progress cursor — see ensureMaterialized in recurrence.ts.
+  // Re-derivable from MAX(occurrenceDate) if this ever drifts, but storing it
+  // avoids rescanning the full history on every page load.
+  lastGeneratedDate DateTime? @db.Date
+
+  supersedesRuleId String?         @unique
+  supersedes       RecurringRule?  @relation("RuleSupersession", fields: [supersedesRuleId], references: [id])
+  supersededBy     RecurringRule?  @relation("RuleSupersession")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile     Profile   @relation(fields: [userId], references: [id])
+  account     Account?  @relation("RecurringAccountLeg", fields: [accountId], references: [id], onDelete: Restrict)
+  fromAccount Account?  @relation("RecurringTransferFrom", fields: [fromAccountId], references: [id], onDelete: Restrict)
+  toAccount   Account?  @relation("RecurringTransferTo", fields: [toAccountId], references: [id], onDelete: Restrict)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  transactions Transaction[]
+  exceptions   RecurringException[]
+
+  @@index([userId, isActive])
+}
+
+model RecurringException {
+  id              String                   @id @default(cuid())
+  recurringRuleId String
+  occurrenceDate  DateTime                 @db.Date
+  action          RecurringExceptionAction
+  transactionId   String? // set when action = MODIFIED
+
+  rule RecurringRule @relation(fields: [recurringRuleId], references: [id], onDelete: Cascade)
+
+  @@unique([recurringRuleId, occurrenceDate])
 }

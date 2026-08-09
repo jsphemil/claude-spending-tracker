@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import type { TransactionActionState } from "@/lib/actions/transactions";
+import { RECURRENCE_UNITS } from "@/lib/validation/recurring";
 
 const initialState: TransactionActionState = { error: null };
 
@@ -38,12 +39,21 @@ const TYPE_OPTIONS: { value: TransactionType; label: string }[] = [
   { value: "TRANSFER", label: "Transfer" },
 ];
 
+const UNIT_LABELS: Record<(typeof RECURRENCE_UNITS)[number], string> = {
+  DAY: "day(s)",
+  WEEK: "week(s)",
+  MONTH: "month(s)",
+  YEAR: "year(s)",
+};
+
 export function TransactionForm({
   action,
   accounts,
   categories,
   defaultValues,
   submitLabel,
+  allowRecurring = false,
+  recurringInfo = null,
 }: {
   action: (
     state: TransactionActionState,
@@ -53,12 +63,19 @@ export function TransactionForm({
   categories: CategoryOption[];
   defaultValues?: Partial<TransactionFormValues>;
   submitLabel: string;
+  /** Only meaningful at creation — shows the "make recurring" toggle. */
+  allowRecurring?: boolean;
+  /** Set when editing a transaction that's part of a recurring series. */
+  recurringInfo?: { scheduleLabel: string } | null;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const values = { ...emptyValues, ...defaultValues };
   const [type, setType] = useState<TransactionType>(values.type);
+  const [recurring, setRecurring] = useState(false);
+  const [choosingScope, setChoosingScope] = useState(false);
 
   const visibleCategories = categories.filter((c) => c.type === type);
+  const isRecurringEdit = recurringInfo !== null;
 
   return (
     <form action={formAction} className="max-w-md space-y-4">
@@ -100,14 +117,26 @@ export function TransactionForm({
           <label htmlFor="date" className="text-sm font-medium text-zinc-700">
             Date
           </label>
-          <input
-            id="date"
-            name="date"
-            type="date"
-            required
-            defaultValue={values.date}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
-          />
+          {isRecurringEdit ? (
+            <>
+              <input
+                type="text"
+                disabled
+                value={values.date}
+                className="w-full rounded-md border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-500"
+              />
+              <input type="hidden" name="date" value={values.date} />
+            </>
+          ) : (
+            <input
+              id="date"
+              name="date"
+              type="date"
+              required
+              defaultValue={values.date}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+            />
+          )}
         </div>
       </div>
 
@@ -215,15 +244,108 @@ export function TransactionForm({
         />
       </div>
 
+      {isRecurringEdit && (
+        <p className="rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+          🔁 Part of a recurring series · {recurringInfo.scheduleLabel}
+        </p>
+      )}
+
+      {allowRecurring && !isRecurringEdit && (
+        <div className="space-y-2 rounded-md border border-zinc-200 p-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+            <input
+              type="checkbox"
+              name="recurring"
+              checked={recurring}
+              onChange={(e) => setRecurring(e.target.checked)}
+              className="h-4 w-4 rounded border-zinc-300"
+            />
+            Make recurring
+          </label>
+
+          {recurring && (
+            <div className="space-y-3 pt-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-zinc-600">Repeat every</span>
+                <input
+                  type="number"
+                  name="intervalCount"
+                  min="1"
+                  defaultValue="1"
+                  required
+                  className="w-16 rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-500 focus:outline-none"
+                />
+                <select
+                  name="intervalUnit"
+                  defaultValue="MONTH"
+                  className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-500 focus:outline-none"
+                >
+                  {RECURRENCE_UNITS.map((unit) => (
+                    <option key={unit} value={unit}>
+                      {UNIT_LABELS[unit]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label htmlFor="endDate" className="text-sm text-zinc-600">
+                  End date (optional — leave blank to repeat indefinitely)
+                </label>
+                <input
+                  id="endDate"
+                  name="endDate"
+                  type="date"
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
-      >
-        {pending ? "Saving…" : submitLabel}
-      </button>
+      {isRecurringEdit && choosingScope ? (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-zinc-700">Apply this change to:</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="submit"
+              name="scope"
+              value="ONE"
+              disabled={pending}
+              className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50"
+            >
+              Just this one
+            </button>
+            <button
+              type="submit"
+              name="scope"
+              value="FUTURE"
+              disabled={pending}
+              className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+            >
+              This and all future occurrences
+            </button>
+            <button
+              type="button"
+              onClick={() => setChoosingScope(false)}
+              className="px-3 py-2 text-sm font-medium text-zinc-500 hover:underline"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type={isRecurringEdit ? "button" : "submit"}
+          onClick={isRecurringEdit ? () => setChoosingScope(true) : undefined}
+          disabled={pending}
+          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+        >
+          {pending ? "Saving…" : submitLabel}
+        </button>
+      )}
     </form>
   );
 }

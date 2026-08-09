@@ -59,15 +59,29 @@ export async function deleteAccount(
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
 
-  const inUseCount = await prisma.transaction.count({
-    where: {
-      userId,
-      OR: [{ accountId }, { fromAccountId: accountId }, { toAccountId: accountId }],
-    },
-  });
+  const [inUseCount, activeRuleCount] = await Promise.all([
+    prisma.transaction.count({
+      where: {
+        userId,
+        OR: [{ accountId }, { fromAccountId: accountId }, { toAccountId: accountId }],
+      },
+    }),
+    prisma.recurringRule.count({
+      where: {
+        userId,
+        isActive: true,
+        OR: [{ accountId }, { fromAccountId: accountId }, { toAccountId: accountId }],
+      },
+    }),
+  ]);
   if (inUseCount > 0) {
     return {
       error: `This account has ${inUseCount} transaction${inUseCount === 1 ? "" : "s"} — delete or move them first.`,
+    };
+  }
+  if (activeRuleCount > 0) {
+    return {
+      error: `This account has ${activeRuleCount} active recurring rule${activeRuleCount === 1 ? "" : "s"} — stop them first.`,
     };
   }
 
