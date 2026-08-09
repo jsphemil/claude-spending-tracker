@@ -22,7 +22,8 @@ model Profile {
   createdAt                     DateTime @default(now())
   updatedAt                     DateTime @updatedAt
 
-  accounts Account[]
+  accounts   Account[]
+  categories Category[]
 }
 
 enum AccountType {
@@ -53,4 +54,26 @@ model Account {
   profile Profile @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+model Category {
+  id              String       @id @default(cuid())
+  userId          String       @db.Uuid
+  type            CategoryType
+  name            String
+  icon            String
+  color           String
+  isSystemDefault Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  profile Profile @relation(fields: [userId], references: [id])
+
+  @@unique([userId, type, name])
+  @@index([userId, type])
 }
