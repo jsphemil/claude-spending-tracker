@@ -10,10 +10,11 @@ import {
   monthParamString,
   monthRange,
   parseMonthParam,
+  previousMonthEnd,
   shiftMonth,
 } from "@/lib/services/calendar";
-import { getSpendRingData } from "@/lib/services/ring";
-import { BalanceRing } from "@/components/charts/BalanceRing";
+import { addToBucket, sortedBuckets, type Bucket } from "@/lib/services/breakdown";
+import { CategoryPieChart } from "@/components/charts/CategoryPieChart";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
 import { ensureMaterialized } from "@/lib/services/recurrence";
 
@@ -30,44 +31,103 @@ export default async function DashboardPage({
   const { month } = await searchParams;
   const monthKey = parseMonthParam(month);
   const { start, end } = monthRange(monthKey);
+  const periodStartCutoff = previousMonthEnd(monthKey);
 
-  const [accounts, deltas, monthTransactions, recentTransactions] = await Promise.all([
-    prisma.account.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
-    getAccountBalanceDeltas(userId, { asOf: end }),
-    prisma.transaction.findMany({
-      where: { userId, type: { in: ["INCOME", "EXPENSE"] }, date: { gte: start, lte: end } },
-      select: { type: true, amount: true },
-    }),
-    prisma.transaction.findMany({
-      where: { userId, date: { lte: end } },
-      orderBy: { date: "desc" },
-      take: 5,
-      include: { account: true, category: true, fromAccount: true, toAccount: true },
-    }),
-  ]);
+  const [accounts, deltasAtStart, deltasAtEnd, periodTransactions, transferAgg, recentTransactions] =
+    await Promise.all([
+      prisma.account.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
+      getAccountBalanceDeltas(userId, { asOf: periodStartCutoff }),
+      getAccountBalanceDeltas(userId, { asOf: end }),
+      prisma.transaction.findMany({
+        where: { userId, type: { in: ["INCOME", "EXPENSE"] }, date: { gte: start, lte: end } },
+        include: { category: true },
+      }),
+      prisma.transaction.aggregate({
+        where: { userId, type: "TRANSFER", date: { gte: start, lte: end } },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.findMany({
+        where: { userId, date: { lte: end } },
+        orderBy: { date: "desc" },
+        take: 5,
+        include: { account: true, category: true, fromAccount: true, toAccount: true },
+      }),
+    ]);
 
   const balances = accounts.map((a) => ({
     account: a,
-    balance: applyDelta(a, deltas, end),
+    balance: applyDelta(a, deltasAtEnd, end),
   }));
-  // All accounts are INR-only for now — cross-currency conversion into this
-  // total lands in Phase 8.
-  const overallBalance = balances.reduce((sum, b) => sum + b.balance, 0);
+  const netWorth = balances.reduce((sum, b) => sum + b.balance, 0);
+  const carryForward = accounts.reduce(
+    (sum, a) => sum + applyDelta(a, deltasAtStart, periodStartCutoff),
+    0
+  );
+  const creditCardAccounts = balances.filter((b) => b.account.type === "CREDIT_CARD");
+  const creditCardDebt =
+    creditCardAccounts.length > 0
+      ? creditCardAccounts.reduce((sum, b) => sum + Math.max(0, -b.balance), 0)
+      : null;
 
-  let income = monthTransactions
-    .filter((t) => t.type === "INCOME")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
-  let expense = monthTransactions
-    .filter((t) => t.type === "EXPENSE")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
-  // Same opening-balance-as-income/expense treatment as the account page,
-  // summed across whichever accounts opened within this period.
+  const incomeByCategory = new Map<string, Bucket>();
+  const expenseByCategory = new Map<string, Bucket>();
+  let income = 0;
+  let expense = 0;
+
+  for (const t of periodTransactions) {
+    const amt = Number(t.amount);
+    if (t.type === "INCOME") {
+      income += amt;
+      addToBucket(
+        incomeByCategory,
+        t.categoryId ?? "uncategorized",
+        t.category?.name ?? "Uncategorized",
+        t.category?.icon ?? "❓",
+        amt
+      );
+    } else {
+      expense += amt;
+      addToBucket(
+        expenseByCategory,
+        t.categoryId ?? "uncategorized",
+        t.category?.name ?? "Uncategorized",
+        t.category?.icon ?? "❓",
+        amt
+      );
+    }
+  }
+
   for (const a of accounts) {
     const ob = openingBalanceInPeriod(a, start, end);
-    if (ob > 0) income += ob;
-    else if (ob < 0) expense += -ob;
+    if (ob > 0) {
+      income += ob;
+      addToBucket(incomeByCategory, "opening-balance", "Opening Balance", "🏦", ob);
+    } else if (ob < 0) {
+      expense += -ob;
+      addToBucket(expenseByCategory, "opening-balance", "Opening Balance", "🏦", -ob);
+    }
   }
-  const ring = getSpendRingData(income, expense);
+
+  const transferSum = Number(transferAgg._sum.amount ?? 0);
+  const totalIn = income + transferSum;
+  const totalOut = expense + transferSum;
+  const leftToSpend = totalIn - totalOut;
+
+  const categories = await prisma.category.findMany({
+    where: { userId },
+    select: { id: true, color: true },
+  });
+  const colorById = new Map(categories.map((c) => [c.id, c.color]));
+  const toPieData = (buckets: Bucket[]) =>
+    buckets.map((b) => ({ name: b.name, value: b.total, color: colorById.get(b.key) ?? "#a1a1aa" }));
+
+  const cashFlowData = [
+    { name: "Income", value: income, color: "#22c55e" },
+    { name: "Transfer In", value: transferSum, color: "#3b82f6" },
+    { name: "Expense", value: expense, color: "#ef4444" },
+    { name: "Transfer Out", value: transferSum, color: "#eab308" },
+  ].filter((d) => d.value > 0);
+
   const prevMonth = monthParamString(shiftMonth(monthKey, -1));
   const nextMonth = monthParamString(shiftMonth(monthKey, 1));
 
@@ -91,27 +151,38 @@ export default async function DashboardPage({
         </Link>
       </div>
 
-      <p className="mt-4 text-sm text-zinc-500">Overall balance as of end of {monthLabel(monthKey)}</p>
-      <p className="text-3xl font-semibold text-zinc-900">{formatMoney(overallBalance, "INR")}</p>
+      <p className="mt-4 text-sm text-zinc-500">Net worth as of end of {monthLabel(monthKey)}</p>
+      <p className="text-3xl font-semibold text-zinc-900">{formatMoney(netWorth, "INR")}</p>
 
-      <div className="mt-6 flex flex-col items-center">
-        <BalanceRing
-          lap1Percent={ring.lap1Percent}
-          lap2Percent={ring.lap2Percent}
-          isOverLimit={ring.isOverLimit}
-          centerLabel={monthLabel(monthKey)}
-          centerValue={formatMoney(expense, "INR")}
-        />
-        <div className="mt-3 flex gap-6 text-sm">
-          <div>
-            <span className="text-zinc-500">Income </span>
-            <span className="font-medium text-emerald-700">{formatMoney(income, "INR")}</span>
-          </div>
-          <div>
-            <span className="text-zinc-500">Expense </span>
-            <span className="font-medium text-rose-700">{formatMoney(expense, "INR")}</span>
-          </div>
+      <div className="mt-4 divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
+        <div className="flex items-center justify-between px-4 py-3 text-sm">
+          <span className="text-zinc-500">Carry Forward</span>
+          <span className="font-medium text-zinc-900">{formatMoney(carryForward, "INR")}</span>
         </div>
+        <div className="flex items-center justify-between px-4 py-3 text-sm">
+          <span className="text-zinc-500">Total In</span>
+          <span className="font-medium text-emerald-700">{formatMoney(totalIn, "INR")}</span>
+        </div>
+        <div className="flex items-center justify-between px-4 py-3 text-sm">
+          <span className="text-zinc-500">Total Out</span>
+          <span className="font-medium text-rose-700">{formatMoney(totalOut, "INR")}</span>
+        </div>
+        <div className="flex items-center justify-between px-4 py-3 text-sm">
+          <span className="text-zinc-500">Left to Spend</span>
+          <span className={`font-medium ${leftToSpend >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+            {formatMoney(leftToSpend, "INR")}
+          </span>
+        </div>
+        {creditCardDebt !== null && (
+          <div className="flex items-center justify-between px-4 py-3 text-sm">
+            <span className="text-zinc-500">Credit card debt</span>
+            <span className="font-medium text-rose-700">{formatMoney(creditCardDebt, "INR")}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6">
+        <CategoryPieChart data={cashFlowData} currency="INR" />
       </div>
 
       <div className="mt-6 grid grid-cols-3 gap-2">
@@ -133,6 +204,29 @@ export default async function DashboardPage({
         >
           Transfer
         </Link>
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-sm font-semibold text-zinc-900">Income by category</h2>
+        <CategoryPieChart data={toPieData(sortedBuckets(incomeByCategory))} currency="INR" />
+      </div>
+
+      <div className="mt-6">
+        <h2 className="text-sm font-semibold text-zinc-900">Expense by category</h2>
+        <CategoryPieChart data={toPieData(sortedBuckets(expenseByCategory))} currency="INR" />
+
+        {sortedBuckets(expenseByCategory).length > 0 && (
+          <ul className="mt-3 space-y-1">
+            {sortedBuckets(expenseByCategory).map((b) => (
+              <li key={b.key} className="flex items-center justify-between text-sm">
+                <span className="text-zinc-700">
+                  {b.icon} {b.name}
+                </span>
+                <span className="font-medium text-rose-700">{formatMoney(b.total, "INR")}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="mt-10">

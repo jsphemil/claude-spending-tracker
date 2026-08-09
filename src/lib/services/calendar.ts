@@ -40,6 +40,12 @@ export function monthRange({ year, monthIndex }: MonthKey) {
   };
 }
 
+// The last day of the month before this one — the cutoff for "Carry
+// Forward" (this period's opening balance is last period's closing one).
+export function previousMonthEnd({ year, monthIndex }: MonthKey): Date {
+  return new Date(Date.UTC(year, monthIndex, 0));
+}
+
 // A 6-week (42-day) grid starting on the Sunday on/before the 1st of the month.
 export function calendarGrid({ year, monthIndex }: MonthKey): Date[] {
   const firstWeekday = new Date(Date.UTC(year, monthIndex, 1)).getUTCDay();

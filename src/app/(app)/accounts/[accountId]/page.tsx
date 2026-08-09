@@ -10,14 +10,14 @@ import {
   monthParamString,
   monthRange,
   parseMonthParam,
+  previousMonthEnd,
   shiftMonth,
 } from "@/lib/services/calendar";
 import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
 import { ensureMaterialized } from "@/lib/services/recurrence";
 import { addToBucket, sortedBuckets, type Bucket } from "@/lib/services/breakdown";
-import { getSpendRingData } from "@/lib/services/ring";
-import { BalanceRing } from "@/components/charts/BalanceRing";
+import { CategoryPieChart } from "@/components/charts/CategoryPieChart";
 
 export default async function AccountDetailPage({
   params,
@@ -35,9 +35,11 @@ export default async function AccountDetailPage({
   const { month } = await searchParams;
   const monthKey = parseMonthParam(month);
   const { start, end } = monthRange(monthKey);
+  const periodStartCutoff = previousMonthEnd(monthKey);
 
-  const [account, deltas, monthTransactions] = await Promise.all([
+  const [account, deltasAtStart, deltasAtEnd, monthTransactions] = await Promise.all([
     prisma.account.findFirst({ where: { id: accountId, userId } }),
+    getAccountBalanceDeltas(userId, { asOf: periodStartCutoff }),
     getAccountBalanceDeltas(userId, { asOf: end }),
     prisma.transaction.findMany({
       where: {
@@ -56,10 +58,16 @@ export default async function AccountDetailPage({
   ]);
   if (!account) notFound();
 
-  const balance = applyDelta(account, deltas, end);
+  const carryForward = applyDelta(account, deltasAtStart, periodStartCutoff);
+  const endingBalance = applyDelta(account, deltasAtEnd, end);
+  const owed = Math.max(0, -endingBalance);
   const availableCredit =
     account.type === "CREDIT_CARD" && account.creditLimit
-      ? Number(account.creditLimit) - Math.max(0, -balance)
+      ? Number(account.creditLimit) - owed
+      : null;
+  const creditUsedPercent =
+    account.type === "CREDIT_CARD" && account.creditLimit && Number(account.creditLimit) > 0
+      ? Math.min(100, (owed / Number(account.creditLimit)) * 100)
       : null;
 
   let income = 0;
@@ -127,12 +135,16 @@ export default async function AccountDetailPage({
     addToBucket(expenseByCategory, "opening-balance", "Opening Balance", "🏦", -openingContribution);
   }
 
-  // Ring fill is measured against income for a regular account, or the
-  // credit limit for a credit card — but the center figure is always the
-  // period's net amount spent, for both.
-  const ringLimit =
-    account.type === "CREDIT_CARD" && account.creditLimit ? Number(account.creditLimit) : income;
-  const ring = getSpendRingData(ringLimit, expense);
+  const totalIn = income + transferIn;
+  const totalOut = expense + transferOut;
+  const leftToSpend = totalIn - totalOut;
+
+  const cashFlowData = [
+    { name: "Income", value: income, color: "#22c55e" },
+    { name: "Transfer In", value: transferIn, color: "#3b82f6" },
+    { name: "Expense", value: expense, color: "#ef4444" },
+    { name: "Transfer Out", value: transferOut, color: "#eab308" },
+  ].filter((d) => d.value > 0);
 
   const prevMonth = monthParamString(shiftMonth(monthKey, -1));
   const nextMonth = monthParamString(shiftMonth(monthKey, 1));
@@ -170,34 +182,46 @@ export default async function AccountDetailPage({
 
       <p className="mt-4 text-sm text-zinc-500">Balance as of end of {monthLabel(monthKey)}</p>
       <p className="text-3xl font-semibold text-zinc-900">
-        {formatMoney(balance, account.currency)}
+        {formatMoney(endingBalance, account.currency)}
       </p>
 
       {account.type === "CREDIT_CARD" && account.creditLimit && (
         <div className="mt-2 space-y-1 text-sm text-zinc-600">
           <p>Credit limit: {formatMoney(Number(account.creditLimit), account.currency)}</p>
           <p>Available credit: {formatMoney(availableCredit!, account.currency)}</p>
+          <div className="mt-1 h-2 overflow-hidden rounded-full bg-zinc-200">
+            <div
+              className={`h-full ${creditUsedPercent! >= 100 ? "bg-red-500" : "bg-blue-500"}`}
+              style={{ width: `${creditUsedPercent}%` }}
+            />
+          </div>
+          <p className="text-xs text-zinc-500">{creditUsedPercent!.toFixed(0)}% of credit limit used</p>
         </div>
       )}
 
-      <div className="mt-6 flex flex-col items-center">
-        <BalanceRing
-          lap1Percent={ring.lap1Percent}
-          lap2Percent={ring.lap2Percent}
-          isOverLimit={ring.isOverLimit}
-          centerLabel={monthLabel(monthKey)}
-          centerValue={formatMoney(expense, account.currency)}
-        />
-        <div className="mt-3 flex gap-6 text-sm">
-          <div>
-            <span className="text-zinc-500">Income </span>
-            <span className="font-medium text-emerald-700">{formatMoney(income, account.currency)}</span>
-          </div>
-          <div>
-            <span className="text-zinc-500">Expense </span>
-            <span className="font-medium text-rose-700">{formatMoney(expense, account.currency)}</span>
-          </div>
+      <div className="mt-6 divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
+        <div className="flex items-center justify-between px-4 py-3 text-sm">
+          <span className="text-zinc-500">Carry Forward</span>
+          <span className="font-medium text-zinc-900">{formatMoney(carryForward, account.currency)}</span>
         </div>
+        <div className="flex items-center justify-between px-4 py-3 text-sm">
+          <span className="text-zinc-500">Total In</span>
+          <span className="font-medium text-emerald-700">{formatMoney(totalIn, account.currency)}</span>
+        </div>
+        <div className="flex items-center justify-between px-4 py-3 text-sm">
+          <span className="text-zinc-500">Total Out</span>
+          <span className="font-medium text-rose-700">{formatMoney(totalOut, account.currency)}</span>
+        </div>
+        <div className="flex items-center justify-between px-4 py-3 text-sm">
+          <span className="text-zinc-500">Left to Spend</span>
+          <span className={`font-medium ${leftToSpend >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+            {formatMoney(leftToSpend, account.currency)}
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <CategoryPieChart data={cashFlowData} currency={account.currency} />
       </div>
 
       <div className="mt-6 grid grid-cols-3 gap-2">
@@ -233,7 +257,7 @@ export default async function AccountDetailPage({
 
       <div className="mt-10">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-900">Monthly summary</h2>
+          <h2 className="text-sm font-semibold text-zinc-900">Breakdown</h2>
           <Link
             href={`/transactions?accountId=${account.id}`}
             className="text-sm font-medium text-zinc-500 hover:underline"
@@ -242,38 +266,11 @@ export default async function AccountDetailPage({
           </Link>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="rounded-lg border border-zinc-200 bg-white p-3">
-            <p className="text-xs text-zinc-500">Income</p>
-            <p className="text-lg font-semibold text-emerald-700">
-              {formatMoney(income, account.currency)}
-            </p>
-          </div>
-          <div className="rounded-lg border border-zinc-200 bg-white p-3">
-            <p className="text-xs text-zinc-500">Expense</p>
-            <p className="text-lg font-semibold text-rose-700">
-              {formatMoney(expense, account.currency)}
-            </p>
-          </div>
-          <div className="rounded-lg border border-zinc-200 bg-white p-3">
-            <p className="text-xs text-zinc-500">Transfers in</p>
-            <p className="text-lg font-semibold text-blue-700">
-              {formatMoney(transferIn, account.currency)}
-            </p>
-          </div>
-          <div className="rounded-lg border border-zinc-200 bg-white p-3">
-            <p className="text-xs text-zinc-500">Transfers out</p>
-            <p className="text-lg font-semibold text-blue-700">
-              {formatMoney(transferOut, account.currency)}
-            </p>
-          </div>
-        </div>
-
         {[
           { title: "Income by category", buckets: sortedBuckets(incomeByCategory), color: "text-emerald-700" },
           { title: "Expense by category", buckets: sortedBuckets(expenseByCategory), color: "text-rose-700" },
           { title: "Transfers in by account", buckets: sortedBuckets(transferInByAccount), color: "text-blue-700" },
-          { title: "Transfers out by account", buckets: sortedBuckets(transferOutByAccount), color: "text-blue-700" },
+          { title: "Transfers out by account", buckets: sortedBuckets(transferOutByAccount), color: "text-amber-700" },
         ]
           .filter((section) => section.buckets.length > 0)
           .map((section) => (
