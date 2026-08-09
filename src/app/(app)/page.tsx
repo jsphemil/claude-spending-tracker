@@ -5,21 +5,30 @@ import { getVerifiedUserId } from "@/lib/supabase/server";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/constants/accounts";
 import { formatMoney } from "@/lib/services/format";
 import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
-import { monthLabel, monthRange, parseMonthParam } from "@/lib/services/calendar";
-import { getRegularRingData } from "@/lib/services/ring";
+import {
+  monthLabel,
+  monthParamString,
+  monthRange,
+  parseMonthParam,
+  shiftMonth,
+} from "@/lib/services/calendar";
+import { getSpendRingData } from "@/lib/services/ring";
 import { BalanceRing } from "@/components/charts/BalanceRing";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
 import { ensureMaterialized } from "@/lib/services/recurrence";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
 
   await ensureMaterialized(userId);
 
-  // Dashboard always shows the current month (spec 5.8) — month browsing
-  // lives on the dedicated Summary page.
-  const monthKey = parseMonthParam(undefined);
+  const { month } = await searchParams;
+  const monthKey = parseMonthParam(month);
   const { start, end } = monthRange(monthKey);
 
   const [accounts, deltas, monthTransactions, recentTransactions] = await Promise.all([
@@ -51,16 +60,34 @@ export default async function DashboardPage() {
   const expense = monthTransactions
     .filter((t) => t.type === "EXPENSE")
     .reduce((sum, t) => sum + Number(t.amount), 0);
-  const ring = getRegularRingData(income, expense);
+  const ring = getSpendRingData(income, expense);
+  const prevMonth = monthParamString(shiftMonth(monthKey, -1));
+  const nextMonth = monthParamString(shiftMonth(monthKey, 1));
 
   return (
     <div className="max-w-md p-6">
       <h1 className="text-xl font-semibold text-zinc-900">Dashboard</h1>
 
-      <p className="mt-4 text-sm text-zinc-500">Overall balance</p>
+      <p className="mt-4 text-sm text-zinc-500">Overall balance (as of today)</p>
       <p className="text-3xl font-semibold text-zinc-900">{formatMoney(overallBalance, "INR")}</p>
 
-      <div className="mt-6 flex flex-col items-center">
+      <div className="mt-8 flex items-center justify-between">
+        <Link
+          href={`/?month=${prevMonth}`}
+          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+        >
+          ← Prev
+        </Link>
+        <p className="text-sm font-medium text-zinc-900">{monthLabel(monthKey)}</p>
+        <Link
+          href={`/?month=${nextMonth}`}
+          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+        >
+          Next →
+        </Link>
+      </div>
+
+      <div className="mt-4 flex flex-col items-center">
         <BalanceRing
           lap1Percent={ring.lap1Percent}
           lap2Percent={ring.lap2Percent}

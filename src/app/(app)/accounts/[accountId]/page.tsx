@@ -16,7 +16,7 @@ import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
 import { ensureMaterialized } from "@/lib/services/recurrence";
 import { addToBucket, sortedBuckets, type Bucket } from "@/lib/services/breakdown";
-import { getCreditRingData, getRegularRingData } from "@/lib/services/ring";
+import { getSpendRingData } from "@/lib/services/ring";
 import { BalanceRing } from "@/components/charts/BalanceRing";
 
 export default async function AccountDetailPage({
@@ -115,16 +115,12 @@ export default async function AccountDetailPage({
     }
   }
 
-  const owed = Math.max(0, -balance);
-  const ring =
-    account.type === "CREDIT_CARD" && account.creditLimit
-      ? getCreditRingData(owed, Number(account.creditLimit))
-      : getRegularRingData(income, expense);
-  const ringCenterLabel = account.type === "CREDIT_CARD" && account.creditLimit ? "Owed" : monthLabel(monthKey);
-  const ringCenterValue = formatMoney(
-    account.type === "CREDIT_CARD" && account.creditLimit ? owed : expense,
-    account.currency
-  );
+  // Ring fill is measured against income for a regular account, or the
+  // credit limit for a credit card — but the center figure is always the
+  // period's net amount spent, for both.
+  const ringLimit =
+    account.type === "CREDIT_CARD" && account.creditLimit ? Number(account.creditLimit) : income;
+  const ring = getSpendRingData(ringLimit, expense);
 
   const prevMonth = monthParamString(shiftMonth(monthKey, -1));
   const nextMonth = monthParamString(shiftMonth(monthKey, 1));
@@ -144,7 +140,8 @@ export default async function AccountDetailPage({
         </div>
       </div>
 
-      <p className="mt-6 text-3xl font-semibold text-zinc-900">
+      <p className="mt-6 text-sm text-zinc-500">Current balance</p>
+      <p className="text-3xl font-semibold text-zinc-900">
         {formatMoney(balance, account.currency)}
       </p>
 
@@ -155,26 +152,40 @@ export default async function AccountDetailPage({
         </div>
       )}
 
-      <div className="mt-6 flex flex-col items-center">
+      <div className="mt-8 flex items-center justify-between">
+        <Link
+          href={`/accounts/${account.id}?month=${prevMonth}`}
+          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+        >
+          ← Prev
+        </Link>
+        <p className="text-sm font-medium text-zinc-900">{monthLabel(monthKey)}</p>
+        <Link
+          href={`/accounts/${account.id}?month=${nextMonth}`}
+          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+        >
+          Next →
+        </Link>
+      </div>
+
+      <div className="mt-4 flex flex-col items-center">
         <BalanceRing
           lap1Percent={ring.lap1Percent}
           lap2Percent={ring.lap2Percent}
           isOverLimit={ring.isOverLimit}
-          centerLabel={ringCenterLabel}
-          centerValue={ringCenterValue}
+          centerLabel={monthLabel(monthKey)}
+          centerValue={formatMoney(expense, account.currency)}
         />
-        {!(account.type === "CREDIT_CARD" && account.creditLimit) && (
-          <div className="mt-3 flex gap-6 text-sm">
-            <div>
-              <span className="text-zinc-500">Income </span>
-              <span className="font-medium text-emerald-700">{formatMoney(income, account.currency)}</span>
-            </div>
-            <div>
-              <span className="text-zinc-500">Expense </span>
-              <span className="font-medium text-rose-700">{formatMoney(expense, account.currency)}</span>
-            </div>
+        <div className="mt-3 flex gap-6 text-sm">
+          <div>
+            <span className="text-zinc-500">Income </span>
+            <span className="font-medium text-emerald-700">{formatMoney(income, account.currency)}</span>
           </div>
-        )}
+          <div>
+            <span className="text-zinc-500">Expense </span>
+            <span className="font-medium text-rose-700">{formatMoney(expense, account.currency)}</span>
+          </div>
+        </div>
       </div>
 
       <div className="mt-6 grid grid-cols-3 gap-2">
@@ -216,22 +227,6 @@ export default async function AccountDetailPage({
             className="text-sm font-medium text-zinc-500 hover:underline"
           >
             Full history
-          </Link>
-        </div>
-
-        <div className="mt-3 flex items-center justify-between">
-          <Link
-            href={`/accounts/${account.id}?month=${prevMonth}`}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
-          >
-            ← Prev
-          </Link>
-          <p className="text-sm font-medium text-zinc-900">{monthLabel(monthKey)}</p>
-          <Link
-            href={`/accounts/${account.id}?month=${nextMonth}`}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
-          >
-            Next →
           </Link>
         </div>
 

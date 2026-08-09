@@ -172,6 +172,32 @@ Everything below is the "must-have" list. Anything not listed here (dark theme, 
 
 - [ ] (Add your own notes here)
 
+## 8. Build Progress
+
+_Updated after every commit so it's always clear what's live and what's left. Brief notes on completed items describe what was actually built, not just the plan._
+
+### Done
+
+- **Phase 0 — Scaffold, Auth, Deploy.** Next.js/TypeScript/Tailwind app on Vercel, auto-deploying from `main`. Supabase email+password auth (signup, login, logout, password reset) backed by Prisma/Postgres. Protected app shell with nav (bottom tabs on mobile, side nav on desktop).
+- **Phase 1 — Accounts.** Full CRUD for all 5 account types (Savings, Investment, Deposit, Wallet/Cash, Credit Card), optional credit limit field, balances computed live from transactions (never stored), deletion blocked while an account has transaction history.
+- **Phase 2 — Categories.** Separate Expense/Income lists, full CRUD, deleting a category reassigns its transactions to "Uncategorized" rather than blocking.
+- **Phase 3 — Transactions core.** Entry form for Income/Expense/Transfer, list view with account/category/date filters, summary band, edit/delete with correct balance recalculation everywhere.
+- **Phase 4 — Calendar view.** Month grid with per-day expense totals and day-level transaction entry.
+- **Phase 5 — Recurring transactions.** "Make recurring" toggle at entry time, real transaction rows materialized on a rolling 3-month horizon (lazy on read + daily cron backstop), "just this one" vs "this and all future occurrences" for both edits and deletes.
+- **Phase 6 — Tags.** Free-form, reusable, cross-account/cross-category labels; inline creation while tagging a transaction; per-tag summary view (income/expense/net + full transaction list); inherited automatically into recurring occurrences.
+- **Phase 6.5 — Editing polish & account insights.** Cancel button on the transaction form; inline "+ New category" quick-add from within the transaction form (no detour to the Categories page); per-account monthly summary (income/expense/transfers-in/transfers-out totals, category breakdown, transfer breakdown by counterpart account) plus a full chronological transaction list for the selected month.
+- **Default categories.** 15 expense + 6 income starter categories (expanded from the original 12) seeded automatically for every new signup and backfilled onto existing accounts, so the starting set is standard across all users; custom categories anyone adds stay private to their own account.
+- **Default tags.** 8 starter tags (Personal, Work, Family, Shared Expense, Reimbursable, Emergency, Gift, Recurring), seeded and backfilled the same way as default categories; custom tags stay private per user.
+- **Phase 7 — Dashboard, Summary, Charts.** Concentric double-ring balance visual (fills 0-100% as spend approaches income/credit limit; past 100% a second red ring fills for the overage — the "second warning lap"). Dashboard shows today's true overall balance plus a month-navigable ring/income/expense view, accounts list, recent transactions, and quick actions. Each account's page shows the same ring, scoped to that account (income vs. expense, or credit limit vs. expense for credit cards) with the period's net spend in the center. New `/summary` page: month + account picker, Carry Forward, Income, Expense, Ending Balance (true net worth for "All Accounts", with credit card debt broken out separately), and Recharts pie charts for income/expense by category.
+- **Auth config fix.** Supabase's Site URL was still set to `localhost:3000`, so confirmation/reset emails linked nowhere useful outside local dev — corrected to the production URL.
+
+### Remaining
+
+- **Phase 8 — Multi-currency.** Live FX rates (Frankfurter API) with caching, `CurrencyAmount` display component, true net-worth "All Accounts" total across currencies.
+- **Phase 9 — Budget Mode + Show/Hide Future toggle.** Per-account monthly budgets (global + per-account settings), toggle for whether future-dated transactions appear in lists/summaries.
+- **Phase 10 — Polish & responsive nav.** Bottom-tab vs. side-nav refinement, loading/empty/error states, accessibility pass, index/N+1 review.
+- **Section 5.7 — Smart Features (Claude-powered).** Explicitly deferred; only a placeholder FAB currently sits in the UI.
+
 ---
 
 _Once this file reflects what you want, the next step is setting up Claude Code and starting the build — we'll walk through that together, one step at a time._
