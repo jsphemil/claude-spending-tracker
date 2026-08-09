@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getVerifiedUserId } from "@/lib/supabase/server";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/constants/accounts";
 import { formatMoney } from "@/lib/services/format";
-import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
+import { applyDelta, getAccountBalanceDeltas, openingBalanceInPeriod } from "@/lib/services/balance";
 import {
   monthLabel,
   monthParamString,
@@ -54,12 +54,19 @@ export default async function DashboardPage({
   // total lands in Phase 8.
   const overallBalance = balances.reduce((sum, b) => sum + b.balance, 0);
 
-  const income = monthTransactions
+  let income = monthTransactions
     .filter((t) => t.type === "INCOME")
     .reduce((sum, t) => sum + Number(t.amount), 0);
-  const expense = monthTransactions
+  let expense = monthTransactions
     .filter((t) => t.type === "EXPENSE")
     .reduce((sum, t) => sum + Number(t.amount), 0);
+  // Same opening-balance-as-income/expense treatment as the account page,
+  // summed across whichever accounts opened within this period.
+  for (const a of accounts) {
+    const ob = openingBalanceInPeriod(a, start, end);
+    if (ob > 0) income += ob;
+    else if (ob < 0) expense += -ob;
+  }
   const ring = getSpendRingData(income, expense);
   const prevMonth = monthParamString(shiftMonth(monthKey, -1));
   const nextMonth = monthParamString(shiftMonth(monthKey, 1));

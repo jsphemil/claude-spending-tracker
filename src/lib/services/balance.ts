@@ -64,3 +64,18 @@ export function applyDelta(account: BalanceAccount, deltas: Record<string, numbe
   if (asOf && asOf < account.openingBalanceDate) return 0;
   return Number(account.openingBalance) + (deltas[account.id] ?? 0);
 }
+
+// The opening balance is a real economic event (money that became
+// available, or debt the account started with) happening on
+// openingBalanceDate — so for whichever period contains that date, it
+// counts as income (if positive) or expense (if negative), the same as
+// any other transaction would. Returns 0 if the date falls outside
+// [start, end]. Signed: positive = income, negative = expense.
+export function openingBalanceInPeriod(
+  account: BalanceAccount,
+  start: Date,
+  end: Date
+): number {
+  if (account.openingBalanceDate < start || account.openingBalanceDate > end) return 0;
+  return Number(account.openingBalance);
+}

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getVerifiedUserId } from "@/lib/supabase/server";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/constants/accounts";
 import { formatMoney } from "@/lib/services/format";
-import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
+import { applyDelta, getAccountBalanceDeltas, openingBalanceInPeriod } from "@/lib/services/balance";
 import {
   monthLabel,
   monthParamString,
@@ -113,6 +113,18 @@ export default async function AccountDetailPage({
         );
       }
     }
+  }
+
+  // The opening balance is a real inflow/outflow on openingBalanceDate —
+  // counts toward this period's income/expense the same as a transaction
+  // would, if that date falls within the selected month.
+  const openingContribution = openingBalanceInPeriod(account, start, end);
+  if (openingContribution > 0) {
+    income += openingContribution;
+    addToBucket(incomeByCategory, "opening-balance", "Opening Balance", "🏦", openingContribution);
+  } else if (openingContribution < 0) {
+    expense += -openingContribution;
+    addToBucket(expenseByCategory, "opening-balance", "Opening Balance", "🏦", -openingContribution);
   }
 
   // Ring fill is measured against income for a regular account, or the

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { getVerifiedUserId } from "@/lib/supabase/server";
 import { formatMoney } from "@/lib/services/format";
-import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
+import { applyDelta, getAccountBalanceDeltas, openingBalanceInPeriod } from "@/lib/services/balance";
 import {
   monthLabel,
   monthParamString,
@@ -72,6 +72,19 @@ export default async function SummaryPage({
         t.category?.icon ?? "❓",
         amt
       );
+    }
+  }
+
+  // Same opening-balance-as-income/expense treatment as the account page.
+  const openingBalanceAccounts = selectedAccount ? [selectedAccount] : accounts;
+  for (const a of openingBalanceAccounts) {
+    const ob = openingBalanceInPeriod(a, start, end);
+    if (ob > 0) {
+      income += ob;
+      addToBucket(incomeByCategory, "opening-balance", "Opening Balance", "🏦", ob);
+    } else if (ob < 0) {
+      expense += -ob;
+      addToBucket(expenseByCategory, "opening-balance", "Opening Balance", "🏦", -ob);
     }
   }
 
