@@ -59,6 +59,40 @@ export default async function AccountDetailPage({
   ]);
   if (!account) notFound();
 
+  // Payoff projection is about "starting from where you are right now,"
+  // not whichever historical/future month is being browsed elsewhere on
+  // this page — so it's anchored to today's real balance, same reasoning
+  // as Goals using today's real net worth rather than a viewed month's.
+  let debtPayoffProjection: { owedToday: number; monthlyReduction: number; projectedDate: Date | null } | null =
+    null;
+  if (account.type === "CREDIT_CARD") {
+    const now = new Date();
+    const todayCutoff = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const sixMonthsAgoCutoff = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 6, now.getUTCDate())
+    );
+    const [deltasToday, deltasSixMonthsAgo] = await Promise.all([
+      getAccountBalanceDeltas(userId, { asOf: todayCutoff }),
+      getAccountBalanceDeltas(userId, { asOf: sixMonthsAgoCutoff }),
+    ]);
+    const owedToday = Math.max(0, -applyDelta(account.id, deltasToday));
+    if (owedToday > 0) {
+      const owedSixMonthsAgo = Math.max(0, -applyDelta(account.id, deltasSixMonthsAgo));
+      const monthlyReduction = (owedSixMonthsAgo - owedToday) / 6;
+      const projectedDate =
+        monthlyReduction > 0
+          ? new Date(
+              Date.UTC(
+                todayCutoff.getUTCFullYear(),
+                todayCutoff.getUTCMonth() + Math.ceil(owedToday / monthlyReduction),
+                todayCutoff.getUTCDate()
+              )
+            )
+          : null;
+      debtPayoffProjection = { owedToday, monthlyReduction, projectedDate };
+    }
+  }
+
   const carryForward = applyDelta(account.id, deltasAtStart);
   const endingBalance = applyDelta(account.id, deltasAtEnd);
   const owed = Math.max(0, -endingBalance);
@@ -252,6 +286,14 @@ export default async function AccountDetailPage({
             </p>
           )}
         </div>
+      )}
+
+      {debtPayoffProjection && (
+        <p className="mt-2 text-xs text-zinc-500">
+          {debtPayoffProjection.projectedDate
+            ? `At your trailing 6-month pace (${formatMoney(debtPayoffProjection.monthlyReduction, account.currency)}/mo), projected debt-free around ${debtPayoffProjection.projectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}.`
+            : "Not currently trending toward payoff — balance isn't shrinking over the trailing 6 months."}
+        </p>
       )}
 
       <div className="mt-6 divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
