@@ -145,27 +145,6 @@ export default async function AccountDetailPage({
   const safeToSpendPerDay =
     daysRemaining !== null && leftToSpend >= 0 ? leftToSpend / daysRemaining : null;
 
-  // Proactive warning, not just a report: extrapolate what's actually gone
-  // out *so far* (deliberately excluding any future-dated transactions
-  // already entered this month, e.g. a recurring bill scheduled for the
-  // 25th when today is the 10th — those haven't happened yet and would
-  // inflate the daily average) to a full-month projection.
-  let projectedMonthEndSpend: number | null = null;
-  if (daysRemaining !== null) {
-    const daysInMonth = end.getUTCDate();
-    const daysElapsed = daysInMonth - daysRemaining + 1;
-    const now = new Date();
-    const todayCutoff = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    const outSoFar = monthTransactions.reduce((sum, t) => {
-      if (t.date > todayCutoff) return sum;
-      if (t.type === "EXPENSE") return sum + Number(t.amount);
-      if (t.type === "TRANSFER" && t.fromAccountId === accountId) return sum + Number(t.amount);
-      return sum;
-    }, 0);
-    if (daysElapsed > 0) projectedMonthEndSpend = (outSoFar / daysElapsed) * daysInMonth;
-  }
-  const isOverProjectedPace = projectedMonthEndSpend !== null && projectedMonthEndSpend > availableFunds;
-
   // A gauge, not a flow-ratio pie: total capacity is what this account had
   // available this period (Carry Forward + Total In), Used eats into it,
   // Available is what's left — exactly `leftToSpend`/`endingBalance`.
@@ -302,21 +281,7 @@ export default async function AccountDetailPage({
             </span>
           </div>
         )}
-        {projectedMonthEndSpend !== null && (
-          <div className="flex items-center justify-between px-4 py-3 text-sm">
-            <span className="text-zinc-500">At this rate, by month-end</span>
-            <span className={`font-medium ${isOverProjectedPace ? "text-rose-700" : "text-emerald-700"}`}>
-              {formatMoney(projectedMonthEndSpend, account.currency)}
-            </span>
-          </div>
-        )}
       </div>
-      {isOverProjectedPace && projectedMonthEndSpend !== null && (
-        <p className="mt-1 text-xs font-medium text-rose-600">
-          That&rsquo;s {formatMoney(projectedMonthEndSpend - availableFunds, account.currency)} more than you
-          have available this month.
-        </p>
-      )}
 
       <div className="mt-6 grid grid-cols-3 gap-2">
         <Link
