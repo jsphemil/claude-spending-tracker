@@ -20,7 +20,7 @@ export function DeleteCategoryButton({
     >
       <button
         type="submit"
-        className="text-sm font-medium text-red-600 hover:underline"
+        className="text-sm font-medium text-danger hover:underline"
       >
         Delete
       </button>

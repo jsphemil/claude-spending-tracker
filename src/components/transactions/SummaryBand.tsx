@@ -15,21 +15,21 @@ export function SummaryBand({
   const incomePct = total > 0 ? (income / total) * 100 : 50;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-zinc-200">
+    <div className="overflow-hidden rounded-lg border border-border">
       <div className="flex h-2">
-        <div className="bg-emerald-500" style={{ width: `${incomePct}%` }} />
-        <div className="bg-rose-500" style={{ width: `${100 - incomePct}%` }} />
+        <div className="bg-success" style={{ width: `${incomePct}%` }} />
+        <div className="bg-danger" style={{ width: `${100 - incomePct}%` }} />
       </div>
       <div className="flex justify-between px-4 py-3 text-sm">
         <div>
-          <span className="text-zinc-500">Income </span>
-          <span className="font-medium text-emerald-700">
+          <span className="text-fg-muted">Income </span>
+          <span className="font-medium text-success">
             {formatMoney(income, currency)}
           </span>
         </div>
         <div>
-          <span className="text-zinc-500">Expense </span>
-          <span className="font-medium text-rose-700">
+          <span className="text-fg-muted">Expense </span>
+          <span className="font-medium text-danger">
             {formatMoney(expense, currency)}
           </span>
         </div>

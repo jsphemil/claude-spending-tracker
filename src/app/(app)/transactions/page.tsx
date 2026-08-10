@@ -93,17 +93,17 @@ export default async function TransactionsPage({
   return (
     <div className="p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-zinc-900">Transactions</h1>
+        <h1 className="text-xl font-semibold text-fg">Transactions</h1>
         <div className="flex items-center gap-3">
           <Link
             href="/transactions/calendar"
-            className="text-sm font-medium text-zinc-500 hover:underline"
+            className="text-sm font-medium text-fg-muted hover:underline"
           >
             Calendar
           </Link>
           <Link
             href="/transactions/new"
-            className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+            className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong"
           >
             + New Transaction
           </Link>
@@ -119,13 +119,13 @@ export default async function TransactionsPage({
       </div>
 
       {transactions.length === 0 ? (
-        <p className="mt-6 text-sm text-zinc-600">No transactions match this filter.</p>
+        <p className="mt-6 text-sm text-fg-muted">No transactions match this filter.</p>
       ) : (
         <ul className="mt-4 space-y-2">
           {transactions.map((t) => (
             <li
               key={t.id}
-              className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3"
+              className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3"
             >
               <div className="flex items-center gap-3">
                 <span
@@ -142,14 +142,14 @@ export default async function TransactionsPage({
                   {t.isOpeningBalance ? "🏦" : t.type === "TRANSFER" ? "🔁" : t.category?.icon ?? "❓"}
                 </span>
                 <div>
-                  <p className="text-sm font-medium text-zinc-900">
+                  <p className="text-sm font-medium text-fg">
                     {t.isOpeningBalance
                       ? `Opening balance · ${t.account?.name}`
                       : t.type === "TRANSFER"
                         ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
                         : `${t.category?.name ?? "Uncategorized"} · ${t.account?.name}`}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-fg-muted">
                     {t.date.toISOString().slice(0, 10)}
                     {t.description ? ` · ${t.description}` : ""}
                     {t.recurringRuleId ? " · 🔁" : ""}
@@ -160,7 +160,7 @@ export default async function TransactionsPage({
                         <Link
                           key={tag.id}
                           href={`/tags/${encodeURIComponent(tag.name)}`}
-                          className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 hover:bg-zinc-200"
+                          className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-fg-muted hover:bg-surface-3"
                         >
                           🏷️ {tag.name}
                         </Link>
@@ -173,10 +173,10 @@ export default async function TransactionsPage({
                 <p
                   className={`text-sm font-medium ${
                     t.type === "INCOME"
-                      ? "text-emerald-700"
+                      ? "text-success"
                       : t.type === "EXPENSE"
-                        ? "text-rose-700"
-                        : "text-zinc-700"
+                        ? "text-danger"
+                        : "text-fg"
                   }`}
                 >
                   {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}
@@ -188,7 +188,7 @@ export default async function TransactionsPage({
                 {t.isOpeningBalance ? (
                   <Link
                     href={`/accounts/${t.accountId}/edit`}
-                    className="text-sm font-medium text-zinc-700 hover:underline"
+                    className="text-sm font-medium text-fg hover:underline"
                   >
                     Edit account
                   </Link>
@@ -196,13 +196,13 @@ export default async function TransactionsPage({
                   <>
                     <Link
                       href={`/transactions/new?duplicateId=${t.id}`}
-                      className="text-sm font-medium text-zinc-500 hover:underline"
+                      className="text-sm font-medium text-fg-muted hover:underline"
                     >
                       Duplicate
                     </Link>
                     <Link
                       href={`/transactions/${t.id}/edit`}
-                      className="text-sm font-medium text-zinc-700 hover:underline"
+                      className="text-sm font-medium text-fg hover:underline"
                     >
                       Edit
                     </Link>

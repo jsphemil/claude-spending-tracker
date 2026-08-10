@@ -34,7 +34,7 @@ export function GoalForm({
   return (
     <form action={formAction} className="max-w-md space-y-4">
       <div className="space-y-1">
-        <label htmlFor="name" className="text-sm font-medium text-zinc-700">
+        <label htmlFor="name" className="text-sm font-medium text-fg">
           Goal name
         </label>
         <input
@@ -43,12 +43,12 @@ export function GoalForm({
           required
           placeholder="e.g. Emergency fund, House down payment"
           defaultValue={values.name}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
         />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="targetAmount" className="text-sm font-medium text-zinc-700">
+        <label htmlFor="targetAmount" className="text-sm font-medium text-fg">
           Target net worth
         </label>
         <input
@@ -59,12 +59,12 @@ export function GoalForm({
           min="0.01"
           required
           defaultValue={values.targetAmount}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
         />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="targetDate" className="text-sm font-medium text-zinc-700">
+        <label htmlFor="targetDate" className="text-sm font-medium text-fg">
           Target date (optional)
         </label>
         <input
@@ -72,17 +72,17 @@ export function GoalForm({
           name="targetDate"
           type="date"
           defaultValue={values.targetDate}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
         />
       </div>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="text-sm text-danger">{state.error}</p>}
 
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-strong disabled:opacity-50"
         >
           {pending ? "Saving…" : submitLabel}
         </button>
@@ -90,7 +90,7 @@ export function GoalForm({
           type="button"
           onClick={() => router.back()}
           disabled={pending}
-          className="rounded-md px-4 py-2 text-sm font-medium text-zinc-500 hover:underline disabled:opacity-50"
+          className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:underline disabled:opacity-50"
         >
           Cancel
         </button>

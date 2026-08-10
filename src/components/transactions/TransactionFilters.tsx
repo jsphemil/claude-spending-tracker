@@ -31,7 +31,7 @@ export function TransactionFilters({
       <select
         defaultValue={searchParams.get("accountId") ?? ""}
         onChange={(e) => updateParam("accountId", e.target.value)}
-        className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+        className="rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-fg"
       >
         <option value="">All accounts</option>
         {accounts.map((a) => (
@@ -44,7 +44,7 @@ export function TransactionFilters({
       <select
         defaultValue={searchParams.get("categoryId") ?? ""}
         onChange={(e) => updateParam("categoryId", e.target.value)}
-        className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+        className="rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-fg"
       >
         <option value="">All categories</option>
         {categories.map((c) => (
@@ -59,22 +59,22 @@ export function TransactionFilters({
         aria-label="From date"
         defaultValue={searchParams.get("from") ?? ""}
         onChange={(e) => updateParam("from", e.target.value)}
-        className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+        className="rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-fg"
       />
-      <span className="text-sm text-zinc-400">to</span>
+      <span className="text-sm text-fg-subtle">to</span>
       <input
         type="date"
         aria-label="To date"
         defaultValue={searchParams.get("to") ?? ""}
         onChange={(e) => updateParam("to", e.target.value)}
-        className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+        className="rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-fg"
       />
 
       {hasFilters && (
         <button
           type="button"
           onClick={() => router.push("/transactions?all=1")}
-          className="text-sm font-medium text-zinc-500 hover:underline"
+          className="text-sm font-medium text-fg-muted hover:underline"
         >
           Clear (show all time)
         </button>

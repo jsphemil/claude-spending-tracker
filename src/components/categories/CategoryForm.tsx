@@ -48,7 +48,7 @@ export function CategoryForm({
   return (
     <form action={formAction} className="max-w-md space-y-4">
       <div className="space-y-1">
-        <label htmlFor="name" className="text-sm font-medium text-zinc-700">
+        <label htmlFor="name" className="text-sm font-medium text-fg">
           Name
         </label>
         <input
@@ -56,12 +56,12 @@ export function CategoryForm({
           name="name"
           required
           defaultValue={values.name}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
         />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="type" className="text-sm font-medium text-zinc-700">
+        <label htmlFor="type" className="text-sm font-medium text-fg">
           Type
         </label>
         <select
@@ -70,7 +70,7 @@ export function CategoryForm({
           defaultValue={values.type}
           disabled={lockType}
           onChange={(e) => setType(e.target.value as (typeof CATEGORY_TYPES)[number])}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none disabled:bg-zinc-100"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none disabled:bg-surface-2"
         >
           {CATEGORY_TYPES.map((t) => (
             <option key={t} value={t}>
@@ -83,7 +83,7 @@ export function CategoryForm({
 
       {type === "EXPENSE" && (
         <div className="space-y-1">
-          <label htmlFor="monthlyBudget" className="text-sm font-medium text-zinc-700">
+          <label htmlFor="monthlyBudget" className="text-sm font-medium text-fg">
             Monthly budget (optional)
           </label>
           <input
@@ -94,14 +94,14 @@ export function CategoryForm({
             min="0.01"
             placeholder="e.g. 5000"
             defaultValue={values.monthlyBudget}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
           />
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label htmlFor="color" className="text-sm font-medium text-zinc-700">
+          <label htmlFor="color" className="text-sm font-medium text-fg">
             Color
           </label>
           <input
@@ -109,19 +109,19 @@ export function CategoryForm({
             name="color"
             type="color"
             defaultValue={values.color}
-            className="h-10 w-full rounded-md border border-zinc-300"
+            className="h-10 w-full rounded-md border border-border"
           />
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="icon" className="text-sm font-medium text-zinc-700">
+          <label htmlFor="icon" className="text-sm font-medium text-fg">
             Icon
           </label>
           <select
             id="icon"
             name="icon"
             defaultValue={values.icon}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
           >
             {CATEGORY_ICONS.map((icon) => (
               <option key={icon} value={icon}>
@@ -132,12 +132,12 @@ export function CategoryForm({
         </div>
       </div>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="text-sm text-danger">{state.error}</p>}
 
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-strong disabled:opacity-50"
       >
         {pending ? "Saving…" : submitLabel}
       </button>

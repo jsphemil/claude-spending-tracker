@@ -10,7 +10,7 @@ export function ChangePasswordForm() {
 
   return (
     <form action={formAction} className="space-y-2">
-      <label htmlFor="password" className="text-sm font-medium text-zinc-700">
+      <label htmlFor="password" className="text-sm font-medium text-fg">
         New password
       </label>
       <input
@@ -20,13 +20,13 @@ export function ChangePasswordForm() {
         required
         minLength={8}
         autoComplete="new-password"
-        className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+        className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
       />
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="text-sm text-danger">{state.error}</p>}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+        className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong disabled:opacity-50"
       >
         {pending ? "Saving…" : "Change password"}
       </button>

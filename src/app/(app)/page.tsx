@@ -19,6 +19,8 @@ import {
 } from "@/lib/services/calendar";
 import { CategoryPieChart } from "@/components/charts/CategoryPieChart";
 import { NetWorthTrendChart } from "@/components/charts/NetWorthTrendChart";
+import { NetWorthRing } from "@/components/charts/NetWorthRing";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/nav/icons";
 import { CalendarMonthGrid } from "@/components/calendar/CalendarMonthGrid";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
 import { ensureMaterialized } from "@/lib/services/recurrence";
@@ -130,9 +132,9 @@ export default async function DashboardPage({
   // Available ones above) — Credit Card balances are debt, not an asset,
   // so they're excluded from the pie and shown as their own figure instead.
   const assetAllocation = [
-    { name: "Liquid (Savings/Wallet)", types: ["SAVINGS", "WALLET"], color: "#3b82f6" },
-    { name: "Deposits (FD/RD)", types: ["DEPOSIT"], color: "#f59e0b" },
-    { name: "Invested", types: ["INVESTMENT"], color: "#8b5cf6" },
+    { name: "Liquid (Savings/Wallet)", types: ["SAVINGS", "WALLET"], color: "#7c6ef2" },
+    { name: "Deposits (FD/RD)", types: ["DEPOSIT"], color: "#f0a63a" },
+    { name: "Invested", types: ["INVESTMENT"], color: "#3aa0c9" },
   ]
     .map((bucket) => ({
       name: bucket.name,
@@ -164,10 +166,6 @@ export default async function DashboardPage({
   // portfolio still renders as a full ring instead of vanishing.
   const totalAvailable = carryForward + income;
   const percentUsed = totalAvailable > 0 ? (expense / totalAvailable) * 100 : null;
-  const pieData = [
-    { name: "Used", value: expense, color: "#ef4444" },
-    { name: "Available", value: Math.max(0, totalAvailable - expense), color: "#22c55e" },
-  ].filter((d) => d.value > 0);
 
   const totalsByDate = new Map<string, number>();
   for (const row of dailyExpenseTotals) {
@@ -177,276 +175,326 @@ export default async function DashboardPage({
   const prevMonth = monthParamString(shiftMonth(monthKey, -1));
   const nextMonth = monthParamString(shiftMonth(monthKey, 1));
 
-  return (
-    <div className="max-w-md p-6">
-      <h1 className="text-xl font-semibold text-zinc-900">Dashboard</h1>
+  const card = "rounded-2xl border border-border bg-surface p-5 shadow-sm";
+  const cardHead = "mb-4 flex items-center justify-between";
+  const cardTitle = "text-sm font-semibold text-fg";
+  const link = "text-[12.5px] font-medium text-accent hover:underline";
 
-      <div className="mt-4 flex items-center justify-between">
-        <Link
-          href={`/?month=${prevMonth}`}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
-        >
-          ← Prev
-        </Link>
-        <p className="text-sm font-medium text-zinc-900">{monthLabel(monthKey)}</p>
-        <Link
-          href={`/?month=${nextMonth}`}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
-        >
-          Next →
-        </Link>
+  return (
+    <div className="mx-auto w-full max-w-[1400px] p-6 lg:p-10">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-xl font-semibold tracking-tight text-fg">Dashboard</h1>
+        <div className="flex items-center gap-0.5 rounded-full border border-border bg-surface p-1">
+          <Link
+            href={`/?month=${prevMonth}`}
+            aria-label="Previous month"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg"
+          >
+            <ChevronLeftIcon className="h-3.5 w-3.5" />
+          </Link>
+          <span className="px-2.5 text-[13px] font-medium text-fg">{monthLabel(monthKey)}</span>
+          <Link
+            href={`/?month=${nextMonth}`}
+            aria-label="Next month"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg"
+          >
+            <ChevronRightIcon className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       </div>
 
       {overBudgetCategories.length > 0 && (
-        <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+        <div className="mb-4 rounded-2xl border border-danger/30 bg-danger-soft px-4 py-3">
           {overBudgetCategories.map((c) => (
-            <p key={c.id} className="text-xs font-medium text-rose-700">
+            <p key={c.id} className="text-xs font-medium text-danger">
               {c.icon} {c.name} is {formatMoney(c.spent - Number(c.monthlyBudget), "INR")} over its{" "}
               {formatMoney(Number(c.monthlyBudget), "INR")}/mo budget
             </p>
           ))}
-          <Link href="/categories" className="text-xs font-medium text-rose-600 hover:underline">
+          <Link href="/categories" className="text-xs font-medium text-danger hover:underline">
             Review budgets →
           </Link>
         </div>
       )}
 
-      <div className="mt-4">
-        <CategoryPieChart
-          data={pieData}
-          currency="INR"
-          showDataLabels
-          centerLabel="Net worth"
-          centerValue={formatMoney(netWorth, "INR")}
-          centerSubtext={percentUsed !== null ? `${percentUsed.toFixed(0)}% used` : undefined}
-        />
-        {netWorth < 0 && (
-          <p className="mt-1 text-center text-xs font-medium text-rose-600">
-            Net position: {formatMoney(netWorth, "INR")}
-          </p>
-        )}
-      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <section className={`${card} lg:col-span-5`}>
+          <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-fg-muted">Net worth</p>
+          <NetWorthRing
+            usedFraction={percentUsed !== null ? percentUsed / 100 : null}
+            centerLabel={monthLabel(monthKey)}
+            centerValue={formatMoney(netWorth, "INR")}
+            centerSubtext={percentUsed !== null ? `${percentUsed.toFixed(0)}% of available used` : undefined}
+          />
+          {netWorth < 0 && (
+            <p className="mt-3 text-xs font-medium text-danger">
+              Overdrawn by {formatMoney(Math.abs(netWorth), "INR")}
+            </p>
+          )}
+        </section>
 
-      <div className="mt-4 divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
-        <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-zinc-500">Carry Forward</span>
-          <span className="font-medium text-zinc-900">{formatMoney(carryForward, "INR")}</span>
-        </div>
-        <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-zinc-500">Income</span>
-          <span className="font-medium text-emerald-700">{formatMoney(income, "INR")}</span>
-        </div>
-        <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-zinc-500">Expense</span>
-          <span className="font-medium text-rose-700">{formatMoney(expense, "INR")}</span>
-        </div>
-        {creditCardDebt !== null && (
-          <div className="flex items-center justify-between px-4 py-3 text-sm">
-            <span className="text-zinc-500">Credit card debt</span>
-            <span className="font-medium text-rose-700">{formatMoney(creditCardDebt, "INR")}</span>
+        <section className={`${card} lg:col-span-7`}>
+          <div className={cardHead}>
+            <h2 className={cardTitle}>Net worth trend</h2>
+            <span className="text-[11px] font-medium uppercase tracking-wide text-fg-subtle">Last 12 months</span>
           </div>
-        )}
-      </div>
-
-      <div className="mt-8">
-        <h2 className="text-sm font-semibold text-zinc-900">Net worth trend</h2>
-        <div className="mt-2 rounded-lg border border-zinc-200 bg-white p-3">
-          <NetWorthTrendChart data={netWorthTrendData} currency="INR" />
-        </div>
-      </div>
-
-      {assetAllocation.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-sm font-semibold text-zinc-900">Asset Allocation</h2>
-          <div className="mt-2 rounded-lg border border-zinc-200 bg-white p-3">
-            <CategoryPieChart data={assetAllocation} currency="INR" showDataLabels height={220} />
-            {creditCardDebt !== null && creditCardDebt > 0 && (
-              <p className="mt-2 text-center text-xs text-zinc-500">
-                Not included above — <span className="font-medium text-rose-600">Credit card debt: {formatMoney(creditCardDebt, "INR")}</span>
+          <div className="mb-3 flex gap-6">
+            <div>
+              <p className="font-data text-[15px] font-semibold tabular-nums text-success">
+                +{formatMoney(income, "INR")}
               </p>
-            )}
+              <p className="text-[11px] text-fg-muted">Income</p>
+            </div>
+            <div>
+              <p className="font-data text-[15px] font-semibold tabular-nums text-danger">
+                −{formatMoney(expense, "INR")}
+              </p>
+              <p className="text-[11px] text-fg-muted">Expense</p>
+            </div>
+            <div>
+              <p className="font-data text-[15px] font-semibold tabular-nums text-fg">
+                {formatMoney(carryForward, "INR")}
+              </p>
+              <p className="text-[11px] text-fg-muted">Carry forward</p>
+            </div>
+          </div>
+          <NetWorthTrendChart data={netWorthTrendData} currency="INR" height={140} />
+        </section>
+
+        <div className="grid grid-cols-2 gap-3 lg:col-span-12 sm:grid-cols-4">
+          <div className="rounded-xl bg-surface-2 p-3.5">
+            <p className="text-[11px] text-fg-muted">Carry forward</p>
+            <p className="font-data mt-1.5 text-[17px] font-semibold tabular-nums text-fg">
+              {formatMoney(carryForward, "INR")}
+            </p>
+          </div>
+          <div className="rounded-xl bg-surface-2 p-3.5">
+            <p className="text-[11px] text-fg-muted">Income</p>
+            <p className="font-data mt-1.5 text-[17px] font-semibold tabular-nums text-success">
+              +{formatMoney(income, "INR")}
+            </p>
+          </div>
+          <div className="rounded-xl bg-surface-2 p-3.5">
+            <p className="text-[11px] text-fg-muted">Expense</p>
+            <p className="font-data mt-1.5 text-[17px] font-semibold tabular-nums text-danger">
+              −{formatMoney(expense, "INR")}
+            </p>
+          </div>
+          <div className="rounded-xl bg-surface-2 p-3.5">
+            <p className="text-[11px] text-fg-muted">Credit card debt</p>
+            <p className="font-data mt-1.5 text-[17px] font-semibold tabular-nums text-fg">
+              {creditCardDebt !== null ? formatMoney(creditCardDebt, "INR") : "—"}
+            </p>
           </div>
         </div>
-      )}
 
-      <div className="mt-8">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-900">Goals</h2>
-          <Link href="/goals" className="text-sm font-medium text-zinc-500 hover:underline">
-            {goals.length === 0 ? "Set a goal" : "View all"}
-          </Link>
-        </div>
+        <section className={`${card} lg:col-span-6`}>
+          <div className={cardHead}>
+            <h2 className={cardTitle}>Asset allocation</h2>
+          </div>
+          {assetAllocation.length > 0 ? (
+            <>
+              <CategoryPieChart data={assetAllocation} currency="INR" showDataLabels height={200} />
+              {creditCardDebt !== null && creditCardDebt > 0 && (
+                <p className="mt-2 text-center text-xs text-fg-muted">
+                  Not included above —{" "}
+                  <span className="font-medium text-danger">
+                    Credit card debt: {formatMoney(creditCardDebt, "INR")}
+                  </span>
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-fg-muted">No positive balances yet.</p>
+          )}
+        </section>
 
-        {goals.length === 0 ? (
-          <p className="mt-3 text-sm text-zinc-600">No goals yet.</p>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {goals.map((goal) => {
-              const target = Number(goal.targetAmount);
-              const percent = Math.min(100, Math.max(0, (netWorth / target) * 100));
-              return (
-                <li key={goal.id} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-zinc-900">{goal.name}</span>
-                    <span className="text-zinc-500">{percent.toFixed(0)}%</span>
-                  </div>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-200">
-                    <div
-                      className={`h-full ${percent >= 100 ? "bg-emerald-500" : "bg-blue-500"}`}
-                      style={{ width: `${percent}%` }}
+        <section className={`${card} lg:col-span-6`}>
+          <div className={cardHead}>
+            <h2 className={cardTitle}>Goals</h2>
+            <Link href="/goals" className={link}>
+              {goals.length === 0 ? "Set a goal" : "View all"}
+            </Link>
+          </div>
+
+          {goals.length === 0 ? (
+            <div>
+              <p className="text-sm text-fg-muted">No goals yet — set a net worth target to track progress here.</p>
+              <Link href="/goals/new" className={`${link} mt-2 inline-block`}>
+                Create your first goal →
+              </Link>
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {goals.map((goal) => {
+                const target = Number(goal.targetAmount);
+                const percent = Math.min(100, Math.max(0, (netWorth / target) * 100));
+                return (
+                  <li key={goal.id}>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-fg">{goal.name}</span>
+                      <span className="font-data tabular-nums text-fg-muted">{percent.toFixed(0)}%</span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${percent}%`,
+                          backgroundColor: percent >= 100 ? "var(--success)" : "var(--accent)",
+                        }}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <section className={`${card} lg:col-span-12`}>
+          <div className={cardHead}>
+            <h2 className={cardTitle}>{monthLabel(monthKey)}</h2>
+            <div className="flex gap-2">
+              <Link
+                href="/transactions/new?type=INCOME"
+                className="rounded-lg border border-border px-3 py-1.5 text-center text-[12.5px] font-medium text-fg hover:bg-surface-2"
+              >
+                + Income
+              </Link>
+              <Link
+                href="/transactions/new?type=EXPENSE"
+                className="rounded-lg border border-border px-3 py-1.5 text-center text-[12.5px] font-medium text-fg hover:bg-surface-2"
+              >
+                + Expense
+              </Link>
+              <Link
+                href="/transactions/new?type=TRANSFER"
+                className="rounded-lg border border-border px-3 py-1.5 text-center text-[12.5px] font-medium text-fg hover:bg-surface-2"
+              >
+                + Transfer
+              </Link>
+            </div>
+          </div>
+          <CalendarMonthGrid monthKey={monthKey} totalsByDate={totalsByDate} />
+        </section>
+
+        <section className={`${card} lg:col-span-6`}>
+          <div className={cardHead}>
+            <h2 className={cardTitle}>Accounts</h2>
+            <Link href="/accounts" className={link}>
+              View all
+            </Link>
+          </div>
+
+          {balances.length === 0 ? (
+            <p className="text-sm text-fg-muted">No accounts yet.</p>
+          ) : (
+            <ul className="space-y-1">
+              {balances.map(({ account, balance }) => (
+                <li key={account.id}>
+                  <Link
+                    href={`/accounts/${account.id}`}
+                    className="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-surface-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-lg"
+                        style={{ backgroundColor: account.color + "20" }}
+                      >
+                        {account.icon}
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium text-fg">{account.name}</p>
+                        <p className="text-xs text-fg-muted">{ACCOUNT_TYPE_LABELS[account.type]}</p>
+                      </div>
+                    </div>
+                    <CurrencyAmount
+                      amount={balance}
+                      currency={account.currency}
+                      inrEquivalent={toINR(balance, account.currency)}
+                      className="font-data text-sm font-medium tabular-nums text-fg"
                     />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className={`${card} lg:col-span-6`}>
+          <div className={cardHead}>
+            <h2 className={cardTitle}>Recent transactions</h2>
+            <Link href="/transactions" className={link}>
+              View all
+            </Link>
+          </div>
+
+          {recentTransactions.length === 0 ? (
+            <p className="text-sm text-fg-muted">No transactions yet.</p>
+          ) : (
+            <ul>
+              {recentTransactions.map((t) => (
+                <li
+                  key={t.id}
+                  className="flex items-center justify-between border-t border-border py-2.5 first:border-t-0"
+                >
+                  <div>
+                    <p className="text-[13.5px] font-medium text-fg">
+                      {t.isOpeningBalance
+                        ? `🏦 Opening balance · ${t.account?.name}`
+                        : t.type === "TRANSFER"
+                          ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
+                          : `${t.category?.name ?? "Uncategorized"} · ${t.account?.name}`}
+                    </p>
+                    <p className="text-[11.5px] text-fg-subtle">
+                      {t.date.toISOString().slice(0, 10)}
+                      {t.recurringRuleId ? " · 🔁" : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <p
+                      className={`font-data text-[13.5px] font-semibold tabular-nums ${
+                        t.type === "INCOME"
+                          ? "text-success"
+                          : t.type === "EXPENSE"
+                            ? "text-danger"
+                            : "text-fg"
+                      }`}
+                    >
+                      {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}
+                      {formatMoney(
+                        Number(t.amount),
+                        t.type === "TRANSFER" ? "INR" : (t.account?.currency ?? "INR")
+                      )}
+                    </p>
+                    {t.isOpeningBalance ? (
+                      <Link
+                        href={`/accounts/${t.accountId}/edit`}
+                        className="text-xs font-medium text-fg-muted hover:underline"
+                      >
+                        Edit account
+                      </Link>
+                    ) : (
+                      <>
+                        <Link
+                          href={`/transactions/${t.id}/edit`}
+                          className="text-xs font-medium text-fg-muted hover:underline"
+                        >
+                          Edit
+                        </Link>
+                        <DeleteTransactionButton
+                          transactionId={t.id}
+                          redirectTo="/"
+                          isRecurring={!!t.recurringRuleId}
+                        />
+                      </>
+                    )}
                   </div>
                 </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-
-      <div className="mt-8">
-        <h2 className="text-sm font-semibold text-zinc-900">{monthLabel(monthKey)}</h2>
-        <div className="mt-2">
-          <CalendarMonthGrid monthKey={monthKey} totalsByDate={totalsByDate} />
-        </div>
-      </div>
-
-      <div className="mt-6 grid grid-cols-3 gap-2">
-        <Link
-          href="/transactions/new?type=INCOME"
-          className="rounded-md border border-zinc-300 px-3 py-2 text-center text-sm font-medium text-zinc-700 hover:bg-zinc-100"
-        >
-          Income
-        </Link>
-        <Link
-          href="/transactions/new?type=EXPENSE"
-          className="rounded-md border border-zinc-300 px-3 py-2 text-center text-sm font-medium text-zinc-700 hover:bg-zinc-100"
-        >
-          Expense
-        </Link>
-        <Link
-          href="/transactions/new?type=TRANSFER"
-          className="rounded-md border border-zinc-300 px-3 py-2 text-center text-sm font-medium text-zinc-700 hover:bg-zinc-100"
-        >
-          Transfer
-        </Link>
-      </div>
-
-      <div className="mt-10">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-900">Accounts</h2>
-          <Link href="/accounts" className="text-sm font-medium text-zinc-500 hover:underline">
-            View all
-          </Link>
-        </div>
-
-        {balances.length === 0 ? (
-          <p className="mt-3 text-sm text-zinc-600">No accounts yet.</p>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {balances.map(({ account, balance }) => (
-              <li key={account.id}>
-                <Link
-                  href={`/accounts/${account.id}`}
-                  className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3 py-2 hover:bg-zinc-50"
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
-                      style={{ backgroundColor: account.color + "20" }}
-                    >
-                      {account.icon}
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium text-zinc-900">{account.name}</p>
-                      <p className="text-xs text-zinc-500">{ACCOUNT_TYPE_LABELS[account.type]}</p>
-                    </div>
-                  </div>
-                  <CurrencyAmount
-                    amount={balance}
-                    currency={account.currency}
-                    inrEquivalent={toINR(balance, account.currency)}
-                    className="text-sm font-medium text-zinc-900"
-                  />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="mt-10">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-900">Recent transactions</h2>
-          <Link href="/transactions" className="text-sm font-medium text-zinc-500 hover:underline">
-            View all
-          </Link>
-        </div>
-
-        {recentTransactions.length === 0 ? (
-          <p className="mt-3 text-sm text-zinc-600">No transactions yet.</p>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {recentTransactions.map((t) => (
-              <li
-                key={t.id}
-                className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3 py-2"
-              >
-                <div>
-                  <p className="text-sm font-medium text-zinc-900">
-                    {t.isOpeningBalance
-                      ? `🏦 Opening balance · ${t.account?.name}`
-                      : t.type === "TRANSFER"
-                        ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
-                        : `${t.category?.name ?? "Uncategorized"} · ${t.account?.name}`}
-                  </p>
-                  <p className="text-xs text-zinc-500">
-                    {t.date.toISOString().slice(0, 10)}
-                    {t.recurringRuleId ? " · 🔁" : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <p
-                    className={`text-sm font-medium ${
-                      t.type === "INCOME"
-                        ? "text-emerald-700"
-                        : t.type === "EXPENSE"
-                          ? "text-rose-700"
-                          : "text-zinc-700"
-                    }`}
-                  >
-                    {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}
-                    {formatMoney(
-                      Number(t.amount),
-                      t.type === "TRANSFER" ? "INR" : (t.account?.currency ?? "INR")
-                    )}
-                  </p>
-                  {t.isOpeningBalance ? (
-                    <Link
-                      href={`/accounts/${t.accountId}/edit`}
-                      className="text-xs font-medium text-zinc-500 hover:underline"
-                    >
-                      Edit account
-                    </Link>
-                  ) : (
-                    <>
-                      <Link
-                        href={`/transactions/${t.id}/edit`}
-                        className="text-xs font-medium text-zinc-500 hover:underline"
-                      >
-                        Edit
-                      </Link>
-                      <DeleteTransactionButton
-                        transactionId={t.id}
-                        redirectTo="/"
-                        isRecurring={!!t.recurringRuleId}
-                      />
-                    </>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
     </div>
   );

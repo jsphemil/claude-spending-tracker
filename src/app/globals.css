@@ -1,19 +1,112 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f5f5f8;
+  --surface: #ffffff;
+  --surface-2: #f0f0f5;
+  --surface-3: #e8e9f0;
+  --border: #e2e3ea;
+  --border-strong: #cfd1dc;
+  --fg: #16171c;
+  --fg-muted: #62667a;
+  --fg-subtle: #9498a8;
+  --accent: #5b4fe0;
+  --accent-soft: rgba(91, 79, 224, 0.1);
+  --accent-strong: #4a3fd0;
+  --success: #12a57c;
+  --success-soft: rgba(18, 165, 124, 0.12);
+  --danger: #e0435a;
+  --danger-soft: rgba(224, 67, 90, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0c10;
+    --surface: #14161c;
+    --surface-2: #1a1d25;
+    --surface-3: #20232d;
+    --border: #262a35;
+    --border-strong: #333748;
+    --fg: #ecedf2;
+    --fg-muted: #8b90a0;
+    --fg-subtle: #5c6072;
+    --accent: #8b7ffb;
+    --accent-soft: rgba(139, 127, 251, 0.14);
+    --accent-strong: #a89bff;
+    --success: #35d0a0;
+    --success-soft: rgba(53, 208, 160, 0.12);
+    --danger: #ff6b80;
+    --danger-soft: rgba(255, 107, 128, 0.12);
+  }
+}
+
+/* Explicit overrides for the manual toggle — win over the media query in
+   either direction since `data-theme` is more specific than the OS signal. */
+:root[data-theme="dark"] {
+  --bg: #0b0c10;
+  --surface: #14161c;
+  --surface-2: #1a1d25;
+  --surface-3: #20232d;
+  --border: #262a35;
+  --border-strong: #333748;
+  --fg: #ecedf2;
+  --fg-muted: #8b90a0;
+  --fg-subtle: #5c6072;
+  --accent: #8b7ffb;
+  --accent-soft: rgba(139, 127, 251, 0.14);
+  --accent-strong: #a89bff;
+  --success: #35d0a0;
+  --success-soft: rgba(53, 208, 160, 0.12);
+  --danger: #ff6b80;
+  --danger-soft: rgba(255, 107, 128, 0.12);
+}
+
+:root[data-theme="light"] {
+  --bg: #f5f5f8;
+  --surface: #ffffff;
+  --surface-2: #f0f0f5;
+  --surface-3: #e8e9f0;
+  --border: #e2e3ea;
+  --border-strong: #cfd1dc;
+  --fg: #16171c;
+  --fg-muted: #62667a;
+  --fg-subtle: #9498a8;
+  --accent: #5b4fe0;
+  --accent-soft: rgba(91, 79, 224, 0.1);
+  --accent-strong: #4a3fd0;
+  --success: #12a57c;
+  --success-soft: rgba(18, 165, 124, 0.12);
+  --danger: #e0435a;
+  --danger-soft: rgba(224, 67, 90, 0.1);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-strong: var(--accent-strong);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-data: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Consolas, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans), -apple-system, "Segoe UI", Arial, sans-serif;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }

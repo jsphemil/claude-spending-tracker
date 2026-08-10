@@ -40,36 +40,36 @@ export default async function TagSummaryPage({
 
   return (
     <div className="p-6">
-      <Link href="/transactions" className="text-sm font-medium text-zinc-500 hover:underline">
+      <Link href="/transactions" className="text-sm font-medium text-fg-muted hover:underline">
         ← Back to Transactions
       </Link>
-      <h1 className="mt-4 text-xl font-semibold text-zinc-900">🏷️ {tag.name}</h1>
+      <h1 className="mt-4 text-xl font-semibold text-fg">🏷️ {tag.name}</h1>
 
-      <div className="mt-6 grid grid-cols-3 gap-4 rounded-lg border border-zinc-200 bg-white p-4">
+      <div className="mt-6 grid grid-cols-3 gap-4 rounded-lg border border-border bg-surface p-4">
         <div>
-          <p className="text-xs text-zinc-500">Income</p>
-          <p className="text-lg font-semibold text-emerald-700">{formatMoney(income, "INR")}</p>
+          <p className="text-xs text-fg-muted">Income</p>
+          <p className="text-lg font-semibold text-success">{formatMoney(income, "INR")}</p>
         </div>
         <div>
-          <p className="text-xs text-zinc-500">Expense</p>
-          <p className="text-lg font-semibold text-rose-700">{formatMoney(expense, "INR")}</p>
+          <p className="text-xs text-fg-muted">Expense</p>
+          <p className="text-lg font-semibold text-danger">{formatMoney(expense, "INR")}</p>
         </div>
         <div>
-          <p className="text-xs text-zinc-500">Net</p>
-          <p className={`text-lg font-semibold ${net >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+          <p className="text-xs text-fg-muted">Net</p>
+          <p className={`text-lg font-semibold ${net >= 0 ? "text-success" : "text-danger"}`}>
             {formatMoney(net, "INR")}
           </p>
         </div>
       </div>
 
       {transactions.length === 0 ? (
-        <p className="mt-6 text-sm text-zinc-600">No transactions carry this tag.</p>
+        <p className="mt-6 text-sm text-fg-muted">No transactions carry this tag.</p>
       ) : (
         <ul className="mt-4 space-y-2">
           {transactions.map((t) => (
             <li
               key={t.id}
-              className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3"
+              className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3"
             >
               <div className="flex items-center gap-3">
                 <span
@@ -82,12 +82,12 @@ export default async function TagSummaryPage({
                   {t.type === "TRANSFER" ? "🔁" : t.category?.icon ?? "❓"}
                 </span>
                 <div>
-                  <p className="text-sm font-medium text-zinc-900">
+                  <p className="text-sm font-medium text-fg">
                     {t.type === "TRANSFER"
                       ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
                       : `${t.category?.name ?? "Uncategorized"} · ${t.account?.name}`}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-fg-muted">
                     {t.date.toISOString().slice(0, 10)}
                     {t.description ? ` · ${t.description}` : ""}
                   </p>
@@ -96,10 +96,10 @@ export default async function TagSummaryPage({
               <p
                 className={`text-sm font-medium ${
                   t.type === "INCOME"
-                    ? "text-emerald-700"
+                    ? "text-success"
                     : t.type === "EXPENSE"
-                      ? "text-rose-700"
-                      : "text-zinc-700"
+                      ? "text-danger"
+                      : "text-fg"
                 }`}
               >
                 {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}

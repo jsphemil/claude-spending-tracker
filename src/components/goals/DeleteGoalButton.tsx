@@ -12,7 +12,7 @@ export function DeleteGoalButton({ goalId }: { goalId: string }) {
         }
       }}
     >
-      <button type="submit" className="text-xs font-medium text-red-600 hover:underline">
+      <button type="submit" className="text-xs font-medium text-danger hover:underline">
         Delete
       </button>
     </form>

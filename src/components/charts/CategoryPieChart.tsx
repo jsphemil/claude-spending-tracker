@@ -25,7 +25,7 @@ export function CategoryPieChart({
   height?: number;
 }) {
   if (data.length === 0) {
-    return <p className="text-sm text-zinc-500">No data for this period.</p>;
+    return <p className="text-sm text-fg-muted">No data for this period.</p>;
   }
 
   return (
@@ -51,15 +51,15 @@ export function CategoryPieChart({
         </ResponsiveContainer>
         {centerValue && (
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
-            {centerLabel && <p className="text-xs text-zinc-500">{centerLabel}</p>}
-            <p className="text-lg font-semibold text-zinc-900">{centerValue}</p>
-            {centerSubtext && <p className="mt-0.5 text-xs text-zinc-500">{centerSubtext}</p>}
+            {centerLabel && <p className="text-xs text-fg-muted">{centerLabel}</p>}
+            <p className="font-data text-lg font-semibold tabular-nums text-fg">{centerValue}</p>
+            {centerSubtext && <p className="mt-0.5 text-xs text-fg-muted">{centerSubtext}</p>}
           </div>
         )}
       </div>
       <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1">
         {data.map((d) => (
-          <div key={d.name} className="flex items-center gap-1.5 text-xs text-zinc-600">
+          <div key={d.name} className="flex items-center gap-1.5 text-xs text-fg-muted">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: d.color }} />
             {d.name}
           </div>

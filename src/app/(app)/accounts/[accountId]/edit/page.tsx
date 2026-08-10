@@ -21,7 +21,7 @@ export default async function EditAccountPage({
 
   return (
     <div className="p-6">
-      <h1 className="text-xl font-semibold text-zinc-900">Edit {account.name}</h1>
+      <h1 className="text-xl font-semibold text-fg">Edit {account.name}</h1>
       <div className="mt-6">
         <AccountForm
           action={updateAccount.bind(null, account.id)}

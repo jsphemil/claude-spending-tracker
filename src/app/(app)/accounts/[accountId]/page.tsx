@@ -245,7 +245,7 @@ export default async function AccountDetailPage({
     <div className="max-w-md p-6">
       <Link
         href="/accounts"
-        className="text-sm font-medium text-zinc-500 hover:underline"
+        className="text-sm font-medium text-fg-muted hover:underline"
       >
         ← Back to Accounts
       </Link>
@@ -258,22 +258,22 @@ export default async function AccountDetailPage({
           {account.icon}
         </span>
         <div>
-          <h1 className="text-xl font-semibold text-zinc-900">{account.name}</h1>
-          <p className="text-sm text-zinc-500">{ACCOUNT_TYPE_LABELS[account.type]}</p>
+          <h1 className="text-xl font-semibold text-fg">{account.name}</h1>
+          <p className="text-sm text-fg-muted">{ACCOUNT_TYPE_LABELS[account.type]}</p>
         </div>
       </div>
 
       <div className="mt-8 flex items-center justify-between">
         <Link
           href={`/accounts/${account.id}?month=${prevMonth}`}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+          className="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:bg-surface-2"
         >
           ← Prev
         </Link>
-        <p className="text-sm font-medium text-zinc-900">{monthLabel(monthKey)}</p>
+        <p className="text-sm font-medium text-fg">{monthLabel(monthKey)}</p>
         <Link
           href={`/accounts/${account.id}?month=${nextMonth}`}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+          className="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:bg-surface-2"
         >
           Next →
         </Link>
@@ -289,18 +289,18 @@ export default async function AccountDetailPage({
           centerSubtext={pieCenterSubtext}
         />
         {!isCreditGauge && endingBalance < 0 && (
-          <p className="mt-1 text-center text-xs font-medium text-rose-600">
+          <p className="mt-1 text-center text-xs font-medium text-danger">
             Overdrawn by {formatMoney(-endingBalance, account.currency)}
           </p>
         )}
       </div>
 
       {account.type === "CREDIT_CARD" && account.creditLimit && (
-        <div className="mt-2 space-y-1 text-sm text-zinc-600">
+        <div className="mt-2 space-y-1 text-sm text-fg-muted">
           <p>Credit limit: {formatMoney(Number(account.creditLimit), account.currency)}</p>
           <p>Available credit: {formatMoney(availableCredit!, account.currency)}</p>
           {owed > Number(account.creditLimit) && (
-            <p className="text-xs font-medium text-rose-600">
+            <p className="text-xs font-medium text-danger">
               Over limit by {formatMoney(owed - Number(account.creditLimit), account.currency)}
             </p>
           )}
@@ -308,7 +308,7 @@ export default async function AccountDetailPage({
       )}
 
       {debtPayoffProjection && (
-        <p className="mt-2 text-xs text-zinc-500">
+        <p className="mt-2 text-xs text-fg-muted">
           {debtPayoffProjection.projectedDate
             ? `At your trailing 6-month pace (${formatMoney(debtPayoffProjection.monthlyReduction, account.currency)}/mo), projected debt-free around ${debtPayoffProjection.projectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}.`
             : "Not currently trending toward payoff — balance isn't shrinking over the trailing 6 months."}
@@ -316,21 +316,21 @@ export default async function AccountDetailPage({
       )}
 
       {effectiveSettings.budgetModeEnabled && account.monthlyBudget && (
-        <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-3">
+        <div className="mt-4 rounded-lg border border-border bg-surface p-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium text-zinc-700">Budget Mode</span>
-            <span className={totalOut > Number(account.monthlyBudget) ? "font-medium text-rose-600" : "text-zinc-500"}>
+            <span className="font-medium text-fg">Budget Mode</span>
+            <span className={totalOut > Number(account.monthlyBudget) ? "font-medium text-danger" : "text-fg-muted"}>
               {formatMoney(totalOut, account.currency)} of {formatMoney(Number(account.monthlyBudget), account.currency)}
             </span>
           </div>
-          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-200">
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
             <div
-              className={`h-full ${totalOut > Number(account.monthlyBudget) ? "bg-rose-500" : "bg-blue-500"}`}
+              className={`h-full ${totalOut > Number(account.monthlyBudget) ? "bg-danger" : "bg-accent"}`}
               style={{ width: `${Math.min(100, (totalOut / Number(account.monthlyBudget)) * 100)}%` }}
             />
           </div>
           {totalOut > Number(account.monthlyBudget) && (
-            <p className="mt-1 text-xs font-medium text-rose-600">
+            <p className="mt-1 text-xs font-medium text-danger">
               {formatMoney(totalOut - Number(account.monthlyBudget), account.currency)} over this account&rsquo;s
               monthly budget
             </p>
@@ -338,29 +338,29 @@ export default async function AccountDetailPage({
         </div>
       )}
 
-      <div className="mt-6 divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
+      <div className="mt-6 divide-y divide-border rounded-lg border border-border bg-surface">
         <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-zinc-500">Carry Forward</span>
-          <span className="font-medium text-zinc-900">{formatMoney(carryForward, account.currency)}</span>
+          <span className="text-fg-muted">Carry Forward</span>
+          <span className="font-medium text-fg">{formatMoney(carryForward, account.currency)}</span>
         </div>
         <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-zinc-500">Total In</span>
-          <span className="font-medium text-emerald-700">{formatMoney(totalIn, account.currency)}</span>
+          <span className="text-fg-muted">Total In</span>
+          <span className="font-medium text-success">{formatMoney(totalIn, account.currency)}</span>
         </div>
         <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-zinc-500">Total Out</span>
-          <span className="font-medium text-rose-700">{formatMoney(totalOut, account.currency)}</span>
+          <span className="text-fg-muted">Total Out</span>
+          <span className="font-medium text-danger">{formatMoney(totalOut, account.currency)}</span>
         </div>
         <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-zinc-500">Left to Spend</span>
-          <span className={`font-medium ${leftToSpend >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+          <span className="text-fg-muted">Left to Spend</span>
+          <span className={`font-medium ${leftToSpend >= 0 ? "text-success" : "text-danger"}`}>
             {formatMoney(leftToSpend, account.currency)}
           </span>
         </div>
         {safeToSpendPerDay !== null && (
           <div className="flex items-center justify-between px-4 py-3 text-sm">
-            <span className="text-zinc-500">Safe to spend/day ({daysRemaining} days left)</span>
-            <span className="font-medium text-emerald-700">
+            <span className="text-fg-muted">Safe to spend/day ({daysRemaining} days left)</span>
+            <span className="font-medium text-success">
               {formatMoney(safeToSpendPerDay, account.currency)}
             </span>
           </div>
@@ -370,19 +370,19 @@ export default async function AccountDetailPage({
       <div className="mt-6 grid grid-cols-3 gap-2">
         <Link
           href={`/transactions/new?type=INCOME&accountId=${account.id}`}
-          className="rounded-md border border-zinc-300 px-3 py-2 text-center text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+          className="rounded-md border border-border px-3 py-2 text-center text-sm font-medium text-fg hover:bg-surface-2"
         >
           Income
         </Link>
         <Link
           href={`/transactions/new?type=EXPENSE&accountId=${account.id}`}
-          className="rounded-md border border-zinc-300 px-3 py-2 text-center text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+          className="rounded-md border border-border px-3 py-2 text-center text-sm font-medium text-fg hover:bg-surface-2"
         >
           Expense
         </Link>
         <Link
           href={`/transactions/new?type=TRANSFER&accountId=${account.id}`}
-          className="rounded-md border border-zinc-300 px-3 py-2 text-center text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+          className="rounded-md border border-border px-3 py-2 text-center text-sm font-medium text-fg hover:bg-surface-2"
         >
           Transfer
         </Link>
@@ -391,7 +391,7 @@ export default async function AccountDetailPage({
       <div className="mt-8 flex gap-2">
         <Link
           href={`/accounts/${account.id}/edit`}
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+          className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg font-medium text-fg hover:bg-surface-2"
         >
           Edit
         </Link>
@@ -400,29 +400,29 @@ export default async function AccountDetailPage({
 
       <div className="mt-10">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-900">Breakdown</h2>
+          <h2 className="text-sm font-semibold text-fg">Breakdown</h2>
           <Link
             href={`/transactions?accountId=${account.id}`}
-            className="text-sm font-medium text-zinc-500 hover:underline"
+            className="text-sm font-medium text-fg-muted hover:underline"
           >
             Full history
           </Link>
         </div>
 
         {[
-          { title: "Income by category", buckets: sortedBuckets(incomeByCategory), color: "text-emerald-700" },
-          { title: "Expense by category", buckets: sortedBuckets(expenseByCategory), color: "text-rose-700" },
-          { title: "Transfers in by account", buckets: sortedBuckets(transferInByAccount), color: "text-blue-700" },
-          { title: "Transfers out by account", buckets: sortedBuckets(transferOutByAccount), color: "text-amber-700" },
+          { title: "Income by category", buckets: sortedBuckets(incomeByCategory), color: "text-success" },
+          { title: "Expense by category", buckets: sortedBuckets(expenseByCategory), color: "text-danger" },
+          { title: "Transfers in by account", buckets: sortedBuckets(transferInByAccount), color: "text-accent" },
+          { title: "Transfers out by account", buckets: sortedBuckets(transferOutByAccount), color: "text-danger" },
         ]
           .filter((section) => section.buckets.length > 0)
           .map((section) => (
             <div key={section.title} className="mt-4">
-              <p className="text-xs font-medium text-zinc-500">{section.title}</p>
+              <p className="text-xs font-medium text-fg-muted">{section.title}</p>
               <ul className="mt-1 space-y-1">
                 {section.buckets.map((b) => (
                   <li key={b.key} className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-700">
+                    <span className="text-fg">
                       {b.icon} {b.name}
                     </span>
                     <span className={`font-medium ${section.color}`}>
@@ -436,11 +436,11 @@ export default async function AccountDetailPage({
       </div>
 
       <div className="mt-10">
-        <h2 className="text-sm font-semibold text-zinc-900">
+        <h2 className="text-sm font-semibold text-fg">
           {monthLabel(monthKey)} transactions
         </h2>
         {hiddenFutureCount > 0 && (
-          <p className="mt-1 text-xs text-zinc-500">
+          <p className="mt-1 text-xs text-fg-muted">
             {hiddenFutureCount} upcoming transaction{hiddenFutureCount === 1 ? "" : "s"} hidden —{" "}
             <Link href="/settings" className="hover:underline">
               Show Future Transactions is off
@@ -450,23 +450,23 @@ export default async function AccountDetailPage({
         )}
 
         {visibleTransactions.length === 0 ? (
-          <p className="mt-3 text-sm text-zinc-600">No transactions this month.</p>
+          <p className="mt-3 text-sm text-fg-muted">No transactions this month.</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {visibleTransactions.map((t) => (
               <li
                 key={t.id}
-                className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3 py-2"
+                className="flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2"
               >
                 <div>
-                  <p className="text-sm font-medium text-zinc-900">
+                  <p className="text-sm font-medium text-fg">
                     {t.isOpeningBalance
                       ? "🏦 Opening balance"
                       : t.type === "TRANSFER"
                         ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
                         : (t.category?.name ?? "Uncategorized")}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-fg-muted">
                     {t.date.toISOString().slice(0, 10)}
                     {t.recurringRuleId ? " · 🔁" : ""}
                   </p>
@@ -476,7 +476,7 @@ export default async function AccountDetailPage({
                         <Link
                           key={tag.id}
                           href={`/tags/${encodeURIComponent(tag.name)}`}
-                          className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 hover:bg-zinc-200"
+                          className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-fg-muted hover:bg-surface-3"
                         >
                           🏷️ {tag.name}
                         </Link>
@@ -488,10 +488,10 @@ export default async function AccountDetailPage({
                   <p
                     className={`text-sm font-medium ${
                       t.type === "INCOME"
-                        ? "text-emerald-700"
+                        ? "text-success"
                         : t.type === "EXPENSE"
-                          ? "text-rose-700"
-                          : "text-zinc-700"
+                          ? "text-danger"
+                          : "text-fg"
                     }`}
                   >
                     {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}
@@ -500,7 +500,7 @@ export default async function AccountDetailPage({
                   {t.isOpeningBalance ? (
                     <Link
                       href={`/accounts/${account.id}/edit`}
-                      className="text-xs font-medium text-zinc-500 hover:underline"
+                      className="text-xs font-medium text-fg-muted hover:underline"
                     >
                       Edit account
                     </Link>
@@ -508,13 +508,13 @@ export default async function AccountDetailPage({
                     <>
                       <Link
                         href={`/transactions/new?duplicateId=${t.id}`}
-                        className="text-xs font-medium text-zinc-500 hover:underline"
+                        className="text-xs font-medium text-fg-muted hover:underline"
                       >
                         Duplicate
                       </Link>
                       <Link
                         href={`/transactions/${t.id}/edit`}
-                        className="text-xs font-medium text-zinc-500 hover:underline"
+                        className="text-xs font-medium text-fg-muted hover:underline"
                       >
                         Edit
                       </Link>

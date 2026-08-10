@@ -68,7 +68,7 @@ export function AccountForm({
   return (
     <form action={formAction} className="max-w-md space-y-4">
       <div className="space-y-1">
-        <label htmlFor="name" className="text-sm font-medium text-zinc-700">
+        <label htmlFor="name" className="text-sm font-medium text-fg">
           Name
         </label>
         <input
@@ -76,12 +76,12 @@ export function AccountForm({
           name="name"
           required
           defaultValue={values.name}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
         />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="type" className="text-sm font-medium text-zinc-700">
+        <label htmlFor="type" className="text-sm font-medium text-fg">
           Type
         </label>
         <select
@@ -89,7 +89,7 @@ export function AccountForm({
           name="type"
           defaultValue={values.type}
           onChange={(e) => setType(e.target.value as (typeof ACCOUNT_TYPES)[number])}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
         >
           {ACCOUNT_TYPES.map((t) => (
             <option key={t} value={t}>
@@ -101,7 +101,7 @@ export function AccountForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label htmlFor="color" className="text-sm font-medium text-zinc-700">
+          <label htmlFor="color" className="text-sm font-medium text-fg">
             Color
           </label>
           <input
@@ -109,19 +109,19 @@ export function AccountForm({
             name="color"
             type="color"
             defaultValue={values.color}
-            className="h-10 w-full rounded-md border border-zinc-300"
+            className="h-10 w-full rounded-md border border-border"
           />
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="icon" className="text-sm font-medium text-zinc-700">
+          <label htmlFor="icon" className="text-sm font-medium text-fg">
             Icon
           </label>
           <select
             id="icon"
             name="icon"
             defaultValue={values.icon}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
           >
             {ACCOUNT_ICONS.map((icon) => (
               <option key={icon} value={icon}>
@@ -134,7 +134,7 @@ export function AccountForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label htmlFor="openingBalance" className="text-sm font-medium text-zinc-700">
+          <label htmlFor="openingBalance" className="text-sm font-medium text-fg">
             Opening balance
           </label>
           <input
@@ -144,19 +144,19 @@ export function AccountForm({
             step="0.01"
             required
             defaultValue={values.openingBalance}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
           />
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="currency" className="text-sm font-medium text-zinc-700">
+          <label htmlFor="currency" className="text-sm font-medium text-fg">
             Currency
           </label>
           <select
             id="currency"
             name="currency"
             defaultValue={values.currency}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
           >
             {CURRENCIES.map((c) => (
               <option key={c.code} value={c.code}>
@@ -168,7 +168,7 @@ export function AccountForm({
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="openingBalanceDate" className="text-sm font-medium text-zinc-700">
+        <label htmlFor="openingBalanceDate" className="text-sm font-medium text-fg">
           Opening balance date
         </label>
         <input
@@ -177,13 +177,13 @@ export function AccountForm({
           type="date"
           required
           defaultValue={values.openingBalanceDate}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
         />
       </div>
 
       {type === "CREDIT_CARD" && (
         <div className="space-y-1">
-          <label htmlFor="creditLimit" className="text-sm font-medium text-zinc-700">
+          <label htmlFor="creditLimit" className="text-sm font-medium text-fg">
             Credit limit
           </label>
           <input
@@ -193,14 +193,14 @@ export function AccountForm({
             step="0.01"
             min="0"
             defaultValue={values.creditLimit}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
           />
         </div>
       )}
 
-      <div className="space-y-4 rounded-md border border-zinc-200 p-3">
+      <div className="space-y-4 rounded-md border border-border p-3">
         <div className="space-y-1">
-          <label htmlFor="budgetModeEnabled" className="text-sm font-medium text-zinc-700">
+          <label htmlFor="budgetModeEnabled" className="text-sm font-medium text-fg">
             Budget Mode
           </label>
           <select
@@ -208,7 +208,7 @@ export function AccountForm({
             name="budgetModeEnabled"
             defaultValue={values.budgetModeEnabled}
             onChange={(e) => setBudgetModeEnabled(e.target.value)}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
           >
             <option value="">Inherit global setting (currently {globalBudgetMode ? "On" : "Off"})</option>
             <option value="true">On for this account</option>
@@ -218,7 +218,7 @@ export function AccountForm({
 
         {effectiveBudgetMode && (
           <div className="space-y-1">
-            <label htmlFor="monthlyBudget" className="text-sm font-medium text-zinc-700">
+            <label htmlFor="monthlyBudget" className="text-sm font-medium text-fg">
               Monthly budget
             </label>
             <input
@@ -229,20 +229,20 @@ export function AccountForm({
               min="0.01"
               placeholder="e.g. 30000"
               defaultValue={values.monthlyBudget}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+              className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
             />
           </div>
         )}
 
         <div className="space-y-1">
-          <label htmlFor="showFutureTransactions" className="text-sm font-medium text-zinc-700">
+          <label htmlFor="showFutureTransactions" className="text-sm font-medium text-fg">
             Show Future Transactions
           </label>
           <select
             id="showFutureTransactions"
             name="showFutureTransactions"
             defaultValue={values.showFutureTransactions}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
           >
             <option value="">Inherit global setting (currently {globalShowFuture ? "Show" : "Hide"})</option>
             <option value="true">Show for this account</option>
@@ -251,13 +251,13 @@ export function AccountForm({
         </div>
       </div>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="text-sm text-danger">{state.error}</p>}
 
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-strong disabled:opacity-50"
         >
           {pending ? "Saving…" : submitLabel}
         </button>
@@ -265,7 +265,7 @@ export function AccountForm({
           type="button"
           onClick={() => router.back()}
           disabled={pending}
-          className="rounded-md px-4 py-2 text-sm font-medium text-zinc-500 hover:underline disabled:opacity-50"
+          className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:underline disabled:opacity-50"
         >
           Cancel
         </button>

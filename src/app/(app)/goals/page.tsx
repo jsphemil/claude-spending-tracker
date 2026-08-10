@@ -47,50 +47,50 @@ export default async function GoalsPage() {
   return (
     <div className="max-w-md p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-zinc-900">Goals</h1>
+        <h1 className="text-xl font-semibold text-fg">Goals</h1>
         <Link
           href="/goals/new"
-          className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+          className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong"
         >
           + New Goal
         </Link>
       </div>
-      <p className="mt-1 text-sm text-zinc-500">
+      <p className="mt-1 text-sm text-fg-muted">
         Tracked against net worth. Projected dates use your trailing {TRAILING_MONTHS}-month growth rate
         ({formatMoney(monthlyGrowth, "INR")}/mo).
       </p>
 
       {rows.length === 0 ? (
-        <p className="mt-6 text-sm text-zinc-600">
+        <p className="mt-6 text-sm text-fg-muted">
           No goals yet. Set a net worth target to start tracking progress.
         </p>
       ) : (
         <ul className="mt-4 space-y-3">
           {rows.map(({ goal, target, remaining, percent, reached, projectedDate, isBehindTarget }) => (
-            <li key={goal.id} className="rounded-lg border border-zinc-200 bg-white p-4">
+            <li key={goal.id} className="rounded-lg border border-border bg-surface p-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-zinc-900">{goal.name}</p>
-                <p className="text-sm font-medium text-zinc-900">{formatMoney(target, "INR")}</p>
+                <p className="text-sm font-medium text-fg">{goal.name}</p>
+                <p className="text-sm font-medium text-fg">{formatMoney(target, "INR")}</p>
               </div>
 
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-200">
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-3">
                 <div
-                  className={`h-full ${reached ? "bg-emerald-500" : "bg-blue-500"}`}
+                  className={`h-full ${reached ? "bg-success" : "bg-accent"}`}
                   style={{ width: `${percent}%` }}
                 />
               </div>
 
-              <div className="mt-2 flex items-center justify-between text-xs text-zinc-500">
+              <div className="mt-2 flex items-center justify-between text-xs text-fg-muted">
                 <span>{percent.toFixed(0)}% there</span>
                 {reached ? (
-                  <span className="font-medium text-emerald-600">🎉 Goal reached</span>
+                  <span className="font-medium text-success">🎉 Goal reached</span>
                 ) : (
                   <span>{formatMoney(remaining, "INR")} to go</span>
                 )}
               </div>
 
               {!reached && (
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="mt-1 text-xs text-fg-muted">
                   {projectedDate
                     ? `At current pace, projected around ${projectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}`
                     : "Not currently trending toward this goal"}
@@ -104,13 +104,13 @@ export default async function GoalsPage() {
                 </p>
               )}
               {isBehindTarget && (
-                <p className="mt-1 text-xs font-medium text-rose-600">Behind pace for your target date</p>
+                <p className="mt-1 text-xs font-medium text-danger">Behind pace for your target date</p>
               )}
 
               <div className="mt-3 flex items-center gap-3">
                 <Link
                   href={`/goals/${goal.id}/edit`}
-                  className="text-xs font-medium text-zinc-500 hover:underline"
+                  className="text-xs font-medium text-fg-muted hover:underline"
                 >
                   Edit
                 </Link>

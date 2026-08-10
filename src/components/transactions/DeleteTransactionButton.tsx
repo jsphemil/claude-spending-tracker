@@ -18,22 +18,22 @@ export function DeleteTransactionButton({
   if (isRecurring && choosingScope) {
     return (
       <form action={action} className="flex items-center gap-2">
-        <span className="text-xs text-zinc-500">Delete:</span>
-        <button type="submit" name="scope" value="ONE" className="text-xs font-medium text-red-600 hover:underline">
+        <span className="text-xs text-fg-muted">Delete:</span>
+        <button type="submit" name="scope" value="ONE" className="text-xs font-medium text-danger hover:underline">
           Just this one
         </button>
         <button
           type="submit"
           name="scope"
           value="FUTURE"
-          className="text-xs font-medium text-red-600 hover:underline"
+          className="text-xs font-medium text-danger hover:underline"
         >
           This and future
         </button>
         <button
           type="button"
           onClick={() => setChoosingScope(false)}
-          className="text-xs font-medium text-zinc-400 hover:underline"
+          className="text-xs font-medium text-fg-subtle hover:underline"
         >
           Cancel
         </button>
@@ -55,7 +55,7 @@ export function DeleteTransactionButton({
         }
       }}
     >
-      <button type="submit" className="text-sm font-medium text-red-600 hover:underline">
+      <button type="submit" className="text-sm font-medium text-danger hover:underline">
         Delete
       </button>
     </form>

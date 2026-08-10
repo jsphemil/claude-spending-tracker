@@ -90,7 +90,7 @@ export function TransactionForm({
 
   return (
     <form action={formAction} className="max-w-md space-y-4">
-      <div className="flex gap-1 rounded-md bg-zinc-100 p-1">
+      <div className="flex gap-1 rounded-md bg-surface-2 p-1">
         {TYPE_OPTIONS.map((opt) => (
           <button
             key={opt.value}
@@ -102,8 +102,8 @@ export function TransactionForm({
             }}
             className={`flex-1 rounded px-3 py-1.5 text-sm font-medium ${
               type === opt.value
-                ? "bg-white text-zinc-900 shadow-sm"
-                : "text-zinc-500 hover:text-zinc-700"
+                ? "bg-surface text-fg shadow-sm"
+                : "text-fg-muted hover:text-fg"
             }`}
           >
             {opt.label}
@@ -114,7 +114,7 @@ export function TransactionForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label htmlFor="amount" className="text-sm font-medium text-zinc-700">
+          <label htmlFor="amount" className="text-sm font-medium text-fg">
             Amount
           </label>
           <input
@@ -125,11 +125,11 @@ export function TransactionForm({
             min="0.01"
             required
             defaultValue={values.amount}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
           />
         </div>
         <div className="space-y-1">
-          <label htmlFor="date" className="text-sm font-medium text-zinc-700">
+          <label htmlFor="date" className="text-sm font-medium text-fg">
             Date
           </label>
           <input
@@ -138,7 +138,7 @@ export function TransactionForm({
             type="date"
             required
             defaultValue={values.date}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
           />
         </div>
       </div>
@@ -146,7 +146,7 @@ export function TransactionForm({
       {type === "TRANSFER" ? (
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label htmlFor="fromAccountId" className="text-sm font-medium text-zinc-700">
+            <label htmlFor="fromAccountId" className="text-sm font-medium text-fg">
               From account
             </label>
             <select
@@ -154,7 +154,7 @@ export function TransactionForm({
               name="fromAccountId"
               required
               defaultValue={values.fromAccountId}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+              className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
             >
               <option value="" disabled>
                 Select account
@@ -167,7 +167,7 @@ export function TransactionForm({
             </select>
           </div>
           <div className="space-y-1">
-            <label htmlFor="toAccountId" className="text-sm font-medium text-zinc-700">
+            <label htmlFor="toAccountId" className="text-sm font-medium text-fg">
               To account
             </label>
             <select
@@ -175,7 +175,7 @@ export function TransactionForm({
               name="toAccountId"
               required
               defaultValue={values.toAccountId}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+              className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
             >
               <option value="" disabled>
                 Select account
@@ -191,7 +191,7 @@ export function TransactionForm({
       ) : (
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label htmlFor="accountId" className="text-sm font-medium text-zinc-700">
+            <label htmlFor="accountId" className="text-sm font-medium text-fg">
               Account
             </label>
             <select
@@ -199,7 +199,7 @@ export function TransactionForm({
               name="accountId"
               required
               defaultValue={values.accountId}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+              className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
             >
               <option value="" disabled>
                 Select account
@@ -213,13 +213,13 @@ export function TransactionForm({
           </div>
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <label htmlFor="categoryId" className="text-sm font-medium text-zinc-700">
+              <label htmlFor="categoryId" className="text-sm font-medium text-fg">
                 Category
               </label>
               <button
                 type="button"
                 onClick={() => setAddingCategory((v) => !v)}
-                className="text-xs font-medium text-zinc-500 hover:underline"
+                className="text-xs font-medium text-fg-muted hover:underline"
               >
                 {addingCategory ? "Cancel" : "+ New category"}
               </button>
@@ -230,7 +230,7 @@ export function TransactionForm({
               required
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+              className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
             >
               <option value="" disabled>
                 Select category
@@ -257,19 +257,19 @@ export function TransactionForm({
       )}
 
       <div className="space-y-1">
-        <label htmlFor="description" className="text-sm font-medium text-zinc-700">
+        <label htmlFor="description" className="text-sm font-medium text-fg">
           Description (optional)
         </label>
         <input
           id="description"
           name="description"
           defaultValue={values.description}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
         />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="tags" className="text-sm font-medium text-zinc-700">
+        <label htmlFor="tags" className="text-sm font-medium text-fg">
           Tags (optional)
         </label>
         <input
@@ -278,34 +278,34 @@ export function TransactionForm({
           list="tag-suggestions"
           placeholder="e.g. Dubai Trip 2026, Work reimbursement"
           defaultValue={values.tags}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
         />
         <datalist id="tag-suggestions">
           {existingTagNames.map((name) => (
             <option key={name} value={name} />
           ))}
         </datalist>
-        <p className="text-xs text-zinc-400">
+        <p className="text-xs text-fg-subtle">
           Comma-separated. Groups transactions across accounts and categories around an
           occasion — reuses an existing tag by name, or creates a new one.
         </p>
       </div>
 
       {isRecurringEdit && (
-        <p className="rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+        <p className="rounded-md bg-surface-2 px-3 py-2 text-sm text-fg-muted">
           🔁 Part of a recurring series · {recurringInfo.scheduleLabel}
         </p>
       )}
 
       {allowRecurring && !isRecurringEdit && (
-        <div className="space-y-2 rounded-md border border-zinc-200 p-3">
-          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+        <div className="space-y-2 rounded-md border border-border p-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-fg">
             <input
               type="checkbox"
               name="recurring"
               checked={recurring}
               onChange={(e) => setRecurring(e.target.checked)}
-              className="h-4 w-4 rounded border-zinc-300"
+              className="h-4 w-4 rounded border-border"
             />
             Make recurring
           </label>
@@ -313,19 +313,19 @@ export function TransactionForm({
           {recurring && (
             <div className="space-y-3 pt-1">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-zinc-600">Repeat every</span>
+                <span className="text-sm text-fg-muted">Repeat every</span>
                 <input
                   type="number"
                   name="intervalCount"
                   min="1"
                   defaultValue="1"
                   required
-                  className="w-16 rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-500 focus:outline-none"
+                  className="w-16 rounded-md border border-border px-2 py-1.5 text-sm focus:border-accent focus:outline-none"
                 />
                 <select
                   name="intervalUnit"
                   defaultValue="MONTH"
-                  className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-500 focus:outline-none"
+                  className="rounded-md border border-border px-2 py-1.5 text-sm focus:border-accent focus:outline-none"
                 >
                   {RECURRENCE_UNITS.map((unit) => (
                     <option key={unit} value={unit}>
@@ -335,14 +335,14 @@ export function TransactionForm({
                 </select>
               </div>
               <div className="space-y-1">
-                <label htmlFor="endDate" className="text-sm text-zinc-600">
+                <label htmlFor="endDate" className="text-sm text-fg-muted">
                   End date (optional — leave blank to repeat indefinitely)
                 </label>
                 <input
                   id="endDate"
                   name="endDate"
                   type="date"
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+                  className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
                 />
               </div>
             </div>
@@ -350,18 +350,18 @@ export function TransactionForm({
         </div>
       )}
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="text-sm text-danger">{state.error}</p>}
 
       {isRecurringEdit && choosingScope ? (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-zinc-700">Apply this change to:</p>
+          <p className="text-sm font-medium text-fg">Apply this change to:</p>
           <div className="flex flex-wrap gap-2">
             <button
               type="submit"
               name="scope"
               value="ONE"
               disabled={pending}
-              className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50"
+              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg font-medium text-fg hover:bg-surface-2 disabled:opacity-50"
             >
               Just this one
             </button>
@@ -370,14 +370,14 @@ export function TransactionForm({
               name="scope"
               value="FUTURE"
               disabled={pending}
-              className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+              className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong disabled:opacity-50"
             >
               This and all future occurrences
             </button>
             <button
               type="button"
               onClick={() => setChoosingScope(false)}
-              className="px-3 py-2 text-sm font-medium text-zinc-500 hover:underline"
+              className="px-3 py-2 text-sm font-medium text-fg-muted hover:underline"
             >
               Cancel
             </button>
@@ -389,7 +389,7 @@ export function TransactionForm({
             type={isRecurringEdit ? "button" : "submit"}
             onClick={isRecurringEdit ? () => setChoosingScope(true) : undefined}
             disabled={pending}
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-strong disabled:opacity-50"
           >
             {pending ? "Saving…" : submitLabel}
           </button>
@@ -397,7 +397,7 @@ export function TransactionForm({
             type="button"
             onClick={() => router.back()}
             disabled={pending}
-            className="rounded-md px-4 py-2 text-sm font-medium text-zinc-500 hover:underline disabled:opacity-50"
+            className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:underline disabled:opacity-50"
           >
             Cancel
           </button>

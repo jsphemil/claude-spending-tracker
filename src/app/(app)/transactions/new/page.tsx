@@ -49,9 +49,9 @@ export default async function NewTransactionPage({
 
   return (
     <div className="p-6">
-      <h1 className="text-xl font-semibold text-zinc-900">New Transaction</h1>
+      <h1 className="text-xl font-semibold text-fg">New Transaction</h1>
       {duplicateSource && (
-        <p className="mt-1 text-sm text-zinc-500">Duplicated from a previous transaction — dated today.</p>
+        <p className="mt-1 text-sm text-fg-muted">Duplicated from a previous transaction — dated today.</p>
       )}
       <div className="mt-6">
         <TransactionForm

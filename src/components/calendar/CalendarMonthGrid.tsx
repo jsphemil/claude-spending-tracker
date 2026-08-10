@@ -22,9 +22,9 @@ export function CalendarMonthGrid({
   const days = calendarGrid(monthKey);
 
   return (
-    <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-zinc-200 bg-zinc-200 text-xs">
+    <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-border bg-border text-xs">
       {WEEKDAY_LABELS.map((label) => (
-        <div key={label} className="bg-zinc-50 px-1 py-1 text-center font-medium text-zinc-500">
+        <div key={label} className="bg-surface-2 px-1 py-1 text-center font-medium text-fg-muted">
           {label}
         </div>
       ))}
@@ -35,16 +35,16 @@ export function CalendarMonthGrid({
         const today = isTodayUTC(day);
 
         return (
-          <div key={dateKey} className={`min-h-16 bg-white p-1 sm:min-h-20 ${inMonth ? "" : "bg-zinc-50"}`}>
+          <div key={dateKey} className={`min-h-16 bg-surface p-1 sm:min-h-20 ${inMonth ? "" : "bg-surface-2"}`}>
             <div className="flex items-start justify-between">
               <Link
                 href={`/transactions?from=${dateKey}&to=${dateKey}`}
                 className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-medium ${
                   today
-                    ? "bg-zinc-900 text-white"
+                    ? "bg-accent text-white"
                     : inMonth
-                      ? "text-zinc-700 hover:bg-zinc-100"
-                      : "text-zinc-300 hover:bg-zinc-100"
+                      ? "text-fg hover:bg-surface-2"
+                      : "text-fg-subtle hover:bg-surface-2"
                 }`}
               >
                 {day.getUTCDate()}
@@ -52,13 +52,13 @@ export function CalendarMonthGrid({
               <Link
                 href={`/transactions/new?type=EXPENSE&date=${dateKey}`}
                 aria-label={`Add transaction on ${dateKey}`}
-                className="px-1 text-xs text-zinc-300 hover:text-zinc-700"
+                className="px-1 text-xs text-fg-subtle hover:text-fg"
               >
                 +
               </Link>
             </div>
             {total > 0 && (
-              <p className="mt-1 truncate text-[11px] font-medium text-rose-700">
+              <p className="mt-1 truncate text-[11px] font-medium text-danger">
                 {formatMoney(total, "INR")}
               </p>
             )}

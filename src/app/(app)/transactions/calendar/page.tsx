@@ -44,8 +44,8 @@ export default async function CalendarPage({
   return (
     <div className="p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-zinc-900">Calendar</h1>
-        <Link href="/transactions" className="text-sm font-medium text-zinc-500 hover:underline">
+        <h1 className="text-xl font-semibold text-fg">Calendar</h1>
+        <Link href="/transactions" className="text-sm font-medium text-fg-muted hover:underline">
           List view
         </Link>
       </div>
@@ -53,14 +53,14 @@ export default async function CalendarPage({
       <div className="mt-4 flex items-center justify-between">
         <Link
           href={`/transactions/calendar?month=${prevMonth}`}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+          className="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:bg-surface-2"
         >
           ← Prev
         </Link>
-        <p className="text-sm font-medium text-zinc-900">{monthLabel(monthKey)}</p>
+        <p className="text-sm font-medium text-fg">{monthLabel(monthKey)}</p>
         <Link
           href={`/transactions/calendar?month=${nextMonth}`}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+          className="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:bg-surface-2"
         >
           Next →
         </Link>

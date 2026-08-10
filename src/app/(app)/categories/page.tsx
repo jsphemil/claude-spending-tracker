@@ -40,24 +40,24 @@ export default async function CategoriesPage({
   return (
     <div className="p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-zinc-900">Categories</h1>
+        <h1 className="text-xl font-semibold text-fg">Categories</h1>
         <Link
           href={`/categories/new?type=${type}`}
-          className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+          className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong"
         >
           + New Category
         </Link>
       </div>
 
-      <div className="mt-4 flex gap-1 border-b border-zinc-200">
+      <div className="mt-4 flex gap-1 border-b border-border">
         {CATEGORY_TYPES.map((t) => (
           <Link
             key={t}
             href={`/categories?type=${t}`}
             className={`border-b-2 px-3 py-2 text-sm font-medium ${
               type === t
-                ? "border-zinc-900 text-zinc-900"
-                : "border-transparent text-zinc-500 hover:text-zinc-700"
+                ? "border-accent text-fg"
+                : "border-transparent text-fg-muted hover:text-fg"
             }`}
           >
             {CATEGORY_TYPE_LABELS[t]}
@@ -66,7 +66,7 @@ export default async function CategoriesPage({
       </div>
 
       {categories.length === 0 ? (
-        <p className="mt-6 text-sm text-zinc-600">
+        <p className="mt-6 text-sm text-fg-muted">
           No {CATEGORY_TYPE_LABELS[type].toLowerCase()} categories yet.
         </p>
       ) : (
@@ -78,7 +78,7 @@ export default async function CategoriesPage({
             const overBudget = budget !== null && spent > budget;
 
             return (
-              <li key={category.id} className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
+              <li key={category.id} className="rounded-lg border border-border bg-surface px-4 py-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span
@@ -87,12 +87,12 @@ export default async function CategoriesPage({
                     >
                       {category.icon}
                     </span>
-                    <p className="text-sm font-medium text-zinc-900">{category.name}</p>
+                    <p className="text-sm font-medium text-fg">{category.name}</p>
                   </div>
                   <div className="flex items-center gap-4">
                     <Link
                       href={`/categories/${category.id}/edit`}
-                      className="text-sm font-medium text-zinc-700 hover:underline"
+                      className="text-sm font-medium text-fg hover:underline"
                     >
                       Edit
                     </Link>
@@ -102,13 +102,13 @@ export default async function CategoriesPage({
 
                 {budget !== null && (
                   <div className="mt-2">
-                    <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
                       <div
-                        className={`h-full ${overBudget ? "bg-rose-500" : "bg-blue-500"}`}
+                        className={`h-full ${overBudget ? "bg-danger" : "bg-accent"}`}
                         style={{ width: `${percent}%` }}
                       />
                     </div>
-                    <p className={`mt-1 text-xs ${overBudget ? "font-medium text-rose-600" : "text-zinc-500"}`}>
+                    <p className={`mt-1 text-xs ${overBudget ? "font-medium text-danger" : "text-fg-muted"}`}>
                       {formatMoney(spent, "INR")} of {formatMoney(budget, "INR")} this {monthLabel(currentMonthKey)}
                       {overBudget && ` — ${formatMoney(spent - budget, "INR")} over`}
                     </p>

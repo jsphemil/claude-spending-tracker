@@ -22,7 +22,7 @@ export function CurrencyAmount({
   return (
     <span className={className}>
       {formatMoney(amount, currency)}
-      <span className="ml-1 font-normal text-zinc-400">≈ {formatMoney(inrEquivalent, "INR")}</span>
+      <span className="ml-1 font-normal text-fg-subtle">≈ {formatMoney(inrEquivalent, "INR")}</span>
     </span>
   );
 }

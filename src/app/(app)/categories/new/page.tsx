@@ -11,7 +11,7 @@ export default async function NewCategoryPage({
 
   return (
     <div className="p-6">
-      <h1 className="text-xl font-semibold text-zinc-900">New Category</h1>
+      <h1 className="text-xl font-semibold text-fg">New Category</h1>
       <div className="mt-6">
         <CategoryForm action={createCategory} submitLabel="Create category" defaultValues={{ type }} />
       </div>

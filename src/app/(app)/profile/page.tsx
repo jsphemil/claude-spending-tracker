@@ -27,15 +27,15 @@ export default async function ProfilePage() {
   return (
     <div className="max-w-md space-y-8 p-6">
       <div>
-        <h1 className="text-xl font-semibold text-zinc-900">Profile</h1>
-        <p className="mt-2 text-sm text-zinc-600">{email}</p>
+        <h1 className="text-xl font-semibold text-fg">Profile</h1>
+        <p className="mt-2 text-sm text-fg-muted">{email}</p>
       </div>
 
       <DisplayNameForm defaultValue={profile.displayName ?? ""} />
 
       <Link
         href="/settings"
-        className="block rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+        className="block rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg font-medium text-fg hover:bg-surface-2"
       >
         Budget Mode and Show Future Transactions settings →
       </Link>
@@ -43,14 +43,14 @@ export default async function ProfilePage() {
       <ChangePasswordForm />
 
       <div className="space-y-2">
-        <h2 className="text-sm font-semibold text-zinc-900">Export Transactions</h2>
+        <h2 className="text-sm font-semibold text-fg">Export Transactions</h2>
         <ExportTransactionsForm accounts={accounts} />
       </div>
 
       <form action={logout}>
         <button
           type="submit"
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+          className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg font-medium text-fg hover:bg-surface-2"
         >
           Sign out
         </button>

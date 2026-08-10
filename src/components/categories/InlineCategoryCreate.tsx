@@ -41,12 +41,12 @@ export function InlineCategoryCreate({
   }
 
   return (
-    <div className="mt-2 space-y-2 rounded-md border border-zinc-200 bg-zinc-50 p-3">
+    <div className="mt-2 space-y-2 rounded-md border border-border bg-surface-2 p-3">
       <div className="flex gap-2">
         <select
           ref={iconRef}
           defaultValue={CATEGORY_ICONS[0]}
-          className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-500 focus:outline-none"
+          className="rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-fg focus:border-accent focus:outline-none"
         >
           {CATEGORY_ICONS.map((icon) => (
             <option key={icon} value={icon}>
@@ -65,23 +65,23 @@ export function InlineCategoryCreate({
               handleAdd();
             }
           }}
-          className="w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm focus:border-zinc-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-fg focus:border-accent focus:outline-none"
         />
       </div>
-      {state.error && <p className="text-xs text-red-600">{state.error}</p>}
+      {state.error && <p className="text-xs text-danger">{state.error}</p>}
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={handleAdd}
           disabled={pending}
-          className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+          className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-strong disabled:opacity-50"
         >
           {pending ? "Adding…" : "Add category"}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="text-xs font-medium text-zinc-500 hover:underline"
+          className="text-xs font-medium text-fg-muted hover:underline"
         >
           Cancel
         </button>

@@ -9,7 +9,7 @@ export default async function NewGoalPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-xl font-semibold text-zinc-900">New Goal</h1>
+      <h1 className="text-xl font-semibold text-fg">New Goal</h1>
       <div className="mt-6">
         <GoalForm action={createGoal} submitLabel="Create goal" />
       </div>

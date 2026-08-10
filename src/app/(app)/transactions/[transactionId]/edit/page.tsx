@@ -38,7 +38,7 @@ export default async function EditTransactionPage({
 
   return (
     <div className="p-6">
-      <h1 className="text-xl font-semibold text-zinc-900">Edit Transaction</h1>
+      <h1 className="text-xl font-semibold text-fg">Edit Transaction</h1>
       <div className="mt-6">
         <TransactionForm
           action={updateTransaction.bind(null, transaction.id)}

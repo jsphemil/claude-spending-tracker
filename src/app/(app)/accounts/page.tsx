@@ -83,10 +83,10 @@ export default async function AccountsPage({
   return (
     <div className="p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-zinc-900">Accounts</h1>
+        <h1 className="text-xl font-semibold text-fg">Accounts</h1>
         <Link
           href="/accounts/new"
-          className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+          className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong"
         >
           + New Account
         </Link>
@@ -95,21 +95,21 @@ export default async function AccountsPage({
       <div className="mt-4 flex items-center justify-between">
         <Link
           href={`/accounts?month=${prevMonth}`}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+          className="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:bg-surface-2"
         >
           ← Prev
         </Link>
-        <p className="text-sm font-medium text-zinc-900">{monthLabel(monthKey)}</p>
+        <p className="text-sm font-medium text-fg">{monthLabel(monthKey)}</p>
         <Link
           href={`/accounts?month=${nextMonth}`}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+          className="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:bg-surface-2"
         >
           Next →
         </Link>
       </div>
 
       {rows.length === 0 ? (
-        <p className="mt-6 text-sm text-zinc-600">
+        <p className="mt-6 text-sm text-fg-muted">
           No accounts yet. Create your first one to get started.
         </p>
       ) : (
@@ -118,7 +118,7 @@ export default async function AccountsPage({
             <li key={account.id}>
               <Link
                 href={`/accounts/${account.id}?month=${monthParamString(monthKey)}`}
-                className="block rounded-lg border border-zinc-200 bg-white px-4 py-3 hover:border-zinc-300"
+                className="block rounded-lg border border-border bg-surface px-4 py-3 hover:border-border"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -129,30 +129,30 @@ export default async function AccountsPage({
                       {account.icon}
                     </span>
                     <div>
-                      <p className="text-sm font-medium text-zinc-900">{account.name}</p>
-                      <p className="text-xs text-zinc-500">{ACCOUNT_TYPE_LABELS[account.type]}</p>
+                      <p className="text-sm font-medium text-fg">{account.name}</p>
+                      <p className="text-xs text-fg-muted">{ACCOUNT_TYPE_LABELS[account.type]}</p>
                     </div>
                   </div>
                   <CurrencyAmount
                     amount={balance}
                     currency={account.currency}
                     inrEquivalent={balanceInr}
-                    className="text-sm font-medium text-zinc-900"
+                    className="text-sm font-medium text-fg"
                   />
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                   <div>
-                    <p className="text-zinc-500">Income</p>
-                    <p className="font-medium text-emerald-700">{formatMoney(income, account.currency)}</p>
+                    <p className="text-fg-muted">Income</p>
+                    <p className="font-medium text-success">{formatMoney(income, account.currency)}</p>
                   </div>
                   <div>
-                    <p className="text-zinc-500">Expense</p>
-                    <p className="font-medium text-rose-700">{formatMoney(expense, account.currency)}</p>
+                    <p className="text-fg-muted">Expense</p>
+                    <p className="font-medium text-danger">{formatMoney(expense, account.currency)}</p>
                   </div>
                   <div>
-                    <p className="text-zinc-500">Transfers</p>
+                    <p className="text-fg-muted">Transfers</p>
                     <p
-                      className={`font-medium ${netTransfer >= 0 ? "text-blue-700" : "text-amber-700"}`}
+                      className={`font-medium ${netTransfer >= 0 ? "text-accent" : "text-danger"}`}
                     >
                       {netTransfer >= 0 ? "+" : ""}
                       {formatMoney(netTransfer, account.currency)}
