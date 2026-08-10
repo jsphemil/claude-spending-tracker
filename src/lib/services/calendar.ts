@@ -66,3 +66,14 @@ export function isSameMonthUTC(date: Date, { year, monthIndex }: MonthKey) {
 export function isTodayUTC(date: Date) {
   return toDateKey(date) === toDateKey(new Date());
 }
+
+// Days left in the month, counting today — only meaningful while viewing
+// the actual current month (a "days remaining" pace figure makes no sense
+// for a past month you're just reviewing, or a future one you haven't
+// started spending in yet), so this is null for any other month.
+export function daysRemainingInMonth(monthKey: MonthKey): number | null {
+  const now = new Date();
+  if (!isSameMonthUTC(now, monthKey)) return null;
+  const { end } = monthRange(monthKey);
+  return end.getUTCDate() - now.getUTCDate() + 1;
+}

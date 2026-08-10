@@ -6,6 +6,7 @@ import { ACCOUNT_TYPE_LABELS } from "@/lib/constants/accounts";
 import { formatMoney } from "@/lib/services/format";
 import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
 import {
+  daysRemainingInMonth,
   monthLabel,
   monthParamString,
   monthRange,
@@ -137,6 +138,13 @@ export default async function AccountDetailPage({
   const leftToSpend =
     account.type === "CREDIT_CARD" && account.creditLimit != null ? availableCredit! : endingBalance;
 
+  // Only meaningful for a non-credit account while viewing the actual
+  // current month — turns "₹9,350 left" into "₹425/day for the 22 days
+  // left," a more directly actionable number for staying on budget.
+  const daysRemaining = account.type === "CREDIT_CARD" ? null : daysRemainingInMonth(monthKey);
+  const safeToSpendPerDay =
+    daysRemaining !== null && leftToSpend >= 0 ? leftToSpend / daysRemaining : null;
+
   // A gauge, not a flow-ratio pie: total capacity is what this account had
   // available this period (Carry Forward + Total In), Used eats into it,
   // Available is what's left — exactly `leftToSpend`/`endingBalance`.
@@ -265,6 +273,14 @@ export default async function AccountDetailPage({
             {formatMoney(leftToSpend, account.currency)}
           </span>
         </div>
+        {safeToSpendPerDay !== null && (
+          <div className="flex items-center justify-between px-4 py-3 text-sm">
+            <span className="text-zinc-500">Safe to spend/day ({daysRemaining} days left)</span>
+            <span className="font-medium text-emerald-700">
+              {formatMoney(safeToSpendPerDay, account.currency)}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 grid grid-cols-3 gap-2">
