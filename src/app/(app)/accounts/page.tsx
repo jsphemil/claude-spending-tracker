@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getVerifiedUserId } from "@/lib/supabase/server";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/constants/accounts";
 import { formatMoney } from "@/lib/services/format";
-import { applyDelta, getAccountBalanceDeltas, openingBalanceInPeriod } from "@/lib/services/balance";
+import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
 import {
   monthLabel,
   monthParamString,
@@ -60,15 +60,12 @@ export default async function AccountsPage({
 
   const rows = accounts.map((account) => {
     const flow = getFlow(account.id);
-    const ob = openingBalanceInPeriod(account, start, end);
-    if (ob > 0) flow.income += ob;
-    else if (ob < 0) flow.expense += -ob;
     return {
       account,
       income: flow.income,
       expense: flow.expense,
       netTransfer: flow.transferIn - flow.transferOut,
-      balance: applyDelta(account, deltasAtEnd, end),
+      balance: applyDelta(account.id, deltasAtEnd),
     };
   });
 

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getVerifiedUserId } from "@/lib/supabase/server";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/constants/accounts";
 import { formatMoney } from "@/lib/services/format";
-import { applyDelta, getAccountBalanceDeltas, openingBalanceInPeriod } from "@/lib/services/balance";
+import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
 import {
   monthLabel,
   monthParamString,
@@ -58,8 +58,8 @@ export default async function AccountDetailPage({
   ]);
   if (!account) notFound();
 
-  const carryForward = applyDelta(account, deltasAtStart, periodStartCutoff);
-  const endingBalance = applyDelta(account, deltasAtEnd, end);
+  const carryForward = applyDelta(account.id, deltasAtStart);
+  const endingBalance = applyDelta(account.id, deltasAtEnd);
   const owed = Math.max(0, -endingBalance);
   const availableCredit =
     account.type === "CREDIT_CARD" && account.creditLimit
@@ -85,18 +85,18 @@ export default async function AccountDetailPage({
       income += amt;
       addToBucket(
         incomeByCategory,
-        t.categoryId ?? "uncategorized",
-        t.category?.name ?? "Uncategorized",
-        t.category?.icon ?? "❓",
+        t.isOpeningBalance ? "opening-balance" : (t.categoryId ?? "uncategorized"),
+        t.isOpeningBalance ? "Opening Balance" : (t.category?.name ?? "Uncategorized"),
+        t.isOpeningBalance ? "🏦" : (t.category?.icon ?? "❓"),
         amt
       );
     } else if (t.type === "EXPENSE") {
       expense += amt;
       addToBucket(
         expenseByCategory,
-        t.categoryId ?? "uncategorized",
-        t.category?.name ?? "Uncategorized",
-        t.category?.icon ?? "❓",
+        t.isOpeningBalance ? "opening-balance" : (t.categoryId ?? "uncategorized"),
+        t.isOpeningBalance ? "Opening Balance" : (t.category?.name ?? "Uncategorized"),
+        t.isOpeningBalance ? "🏦" : (t.category?.icon ?? "❓"),
         amt
       );
     } else {
@@ -123,18 +123,6 @@ export default async function AccountDetailPage({
     }
   }
 
-  // The opening balance is a real inflow/outflow on openingBalanceDate —
-  // counts toward this period's income/expense the same as a transaction
-  // would, if that date falls within the selected month.
-  const openingContribution = openingBalanceInPeriod(account, start, end);
-  if (openingContribution > 0) {
-    income += openingContribution;
-    addToBucket(incomeByCategory, "opening-balance", "Opening Balance", "🏦", openingContribution);
-  } else if (openingContribution < 0) {
-    expense += -openingContribution;
-    addToBucket(expenseByCategory, "opening-balance", "Opening Balance", "🏦", -openingContribution);
-  }
-
   const totalIn = income + transferIn;
   const totalOut = expense + transferOut;
   const leftToSpend = totalIn - totalOut;
@@ -149,6 +137,36 @@ export default async function AccountDetailPage({
     { name: "Expense", value: expense, color: "#ef4444" },
     { name: "Transfer Out", value: transferOut, color: "#eab308" },
   ].filter((d) => d.value > 0);
+
+  // For a credit card, "this period's flow" isn't the useful thing to see
+  // in the pie — a debt that carries over unpaid into a month with zero new
+  // transactions would render as empty, hiding exactly the balance the user
+  // cares about. Instead, scale the pie to the credit limit itself: Owed
+  // eats into it, payments (which reduce endingBalance's negativity) grow
+  // Available back — a gauge, not a flow breakdown, and it's never empty as
+  // long as a limit is set.
+  const isCreditGauge = account.type === "CREDIT_CARD" && account.creditLimit != null;
+  const creditGaugeData = isCreditGauge
+    ? [
+        { name: "Owed", value: owed, color: "#ef4444" },
+        {
+          name: "Available Credit",
+          value: Math.max(0, Number(account.creditLimit) - owed),
+          color: "#7c3aed",
+        },
+      ].filter((d) => d.value > 0)
+    : null;
+
+  const pieData = creditGaugeData ?? cashFlowData;
+  const pieCenterLabel = isCreditGauge ? "Available credit" : "Balance available";
+  const pieCenterValue = isCreditGauge
+    ? formatMoney(availableCredit!, account.currency)
+    : formatMoney(endingBalance, account.currency);
+  const pieCenterSubtext = isCreditGauge
+    ? `${creditUsedPercent!.toFixed(0)}% used`
+    : percentSpent !== null
+      ? `${percentSpent.toFixed(0)}% spent`
+      : undefined;
 
   const prevMonth = monthParamString(shiftMonth(monthKey, -1));
   const nextMonth = monthParamString(shiftMonth(monthKey, 1));
@@ -193,12 +211,12 @@ export default async function AccountDetailPage({
 
       <div className="mt-4">
         <CategoryPieChart
-          data={cashFlowData}
+          data={pieData}
           currency={account.currency}
           showDataLabels
-          centerLabel="Balance available"
-          centerValue={formatMoney(endingBalance, account.currency)}
-          centerSubtext={percentSpent !== null ? `${percentSpent.toFixed(0)}% spent` : undefined}
+          centerLabel={pieCenterLabel}
+          centerValue={pieCenterValue}
+          centerSubtext={pieCenterSubtext}
         />
       </div>
 
@@ -206,13 +224,11 @@ export default async function AccountDetailPage({
         <div className="mt-2 space-y-1 text-sm text-zinc-600">
           <p>Credit limit: {formatMoney(Number(account.creditLimit), account.currency)}</p>
           <p>Available credit: {formatMoney(availableCredit!, account.currency)}</p>
-          <div className="mt-1 h-2 overflow-hidden rounded-full bg-zinc-200">
-            <div
-              className={`h-full ${creditUsedPercent! >= 100 ? "bg-red-500" : "bg-blue-500"}`}
-              style={{ width: `${creditUsedPercent}%` }}
-            />
-          </div>
-          <p className="text-xs text-zinc-500">{creditUsedPercent!.toFixed(0)}% of credit limit used</p>
+          {owed > Number(account.creditLimit) && (
+            <p className="text-xs font-medium text-rose-600">
+              Over limit by {formatMoney(owed - Number(account.creditLimit), account.currency)}
+            </p>
+          )}
         </div>
       )}
 
@@ -321,9 +337,11 @@ export default async function AccountDetailPage({
               >
                 <div>
                   <p className="text-sm font-medium text-zinc-900">
-                    {t.type === "TRANSFER"
-                      ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
-                      : (t.category?.name ?? "Uncategorized")}
+                    {t.isOpeningBalance
+                      ? "🏦 Opening balance"
+                      : t.type === "TRANSFER"
+                        ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
+                        : (t.category?.name ?? "Uncategorized")}
                   </p>
                   <p className="text-xs text-zinc-500">
                     {t.date.toISOString().slice(0, 10)}
@@ -356,17 +374,28 @@ export default async function AccountDetailPage({
                     {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}
                     {formatMoney(Number(t.amount), account.currency)}
                   </p>
-                  <Link
-                    href={`/transactions/${t.id}/edit`}
-                    className="text-xs font-medium text-zinc-500 hover:underline"
-                  >
-                    Edit
-                  </Link>
-                  <DeleteTransactionButton
-                    transactionId={t.id}
-                    redirectTo={`/accounts/${account.id}?month=${monthParamString(monthKey)}`}
-                    isRecurring={!!t.recurringRuleId}
-                  />
+                  {t.isOpeningBalance ? (
+                    <Link
+                      href={`/accounts/${account.id}/edit`}
+                      className="text-xs font-medium text-zinc-500 hover:underline"
+                    >
+                      Edit account
+                    </Link>
+                  ) : (
+                    <>
+                      <Link
+                        href={`/transactions/${t.id}/edit`}
+                        className="text-xs font-medium text-zinc-500 hover:underline"
+                      >
+                        Edit
+                      </Link>
+                      <DeleteTransactionButton
+                        transactionId={t.id}
+                        redirectTo={`/accounts/${account.id}?month=${monthParamString(monthKey)}`}
+                        isRecurring={!!t.recurringRuleId}
+                      />
+                    </>
+                  )}
                 </div>
               </li>
             ))}

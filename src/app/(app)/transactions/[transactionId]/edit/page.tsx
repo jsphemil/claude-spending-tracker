@@ -32,6 +32,7 @@ export default async function EditTransactionPage({
     prisma.tag.findMany({ where: { userId }, orderBy: { name: "asc" }, select: { name: true } }),
   ]);
   if (!transaction) notFound();
+  if (transaction.isOpeningBalance) redirect(`/accounts/${transaction.accountId}/edit`);
 
   const anchorDate = (transaction.occurrenceDate ?? transaction.date).toISOString().slice(0, 10);
 

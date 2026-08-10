@@ -107,6 +107,9 @@ export async function updateTransaction(
 
   const existing = await prisma.transaction.findFirst({ where: { id: transactionId, userId } });
   if (!existing) return { error: "Transaction not found" };
+  if (existing.isOpeningBalance) {
+    return { error: "Edit the opening balance from the account's own edit page instead." };
+  }
 
   const parsed = parseTransactionFormData(formData);
   if (!parsed.success) {
@@ -182,6 +185,10 @@ export async function deleteTransaction(transactionId: string, redirectTo: strin
 
   const existing = await prisma.transaction.findFirst({ where: { id: transactionId, userId } });
   if (!existing) redirect(redirectTo);
+  // Not deletable directly — it's kept in sync with the account's own
+  // openingBalance field (see lib/actions/accounts.ts). The UI doesn't
+  // render a delete control for these rows; this is a server-side backstop.
+  if (existing.isOpeningBalance) redirect(redirectTo);
 
   if (existing.recurringRuleId && existing.occurrenceDate) {
     const scope = formData.get("scope");

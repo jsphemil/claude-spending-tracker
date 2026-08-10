@@ -128,16 +128,22 @@ export default async function TransactionsPage({
                   className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
                   style={{
                     backgroundColor:
-                      (t.type === "TRANSFER" ? "#3b82f6" : t.category?.color ?? "#71717a") + "20",
+                      (t.isOpeningBalance
+                        ? "#7c3aed"
+                        : t.type === "TRANSFER"
+                          ? "#3b82f6"
+                          : t.category?.color ?? "#71717a") + "20",
                   }}
                 >
-                  {t.type === "TRANSFER" ? "🔁" : t.category?.icon ?? "❓"}
+                  {t.isOpeningBalance ? "🏦" : t.type === "TRANSFER" ? "🔁" : t.category?.icon ?? "❓"}
                 </span>
                 <div>
                   <p className="text-sm font-medium text-zinc-900">
-                    {t.type === "TRANSFER"
-                      ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
-                      : `${t.category?.name ?? "Uncategorized"} · ${t.account?.name}`}
+                    {t.isOpeningBalance
+                      ? `Opening balance · ${t.account?.name}`
+                      : t.type === "TRANSFER"
+                        ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
+                        : `${t.category?.name ?? "Uncategorized"} · ${t.account?.name}`}
                   </p>
                   <p className="text-xs text-zinc-500">
                     {t.date.toISOString().slice(0, 10)}
@@ -175,17 +181,28 @@ export default async function TransactionsPage({
                     t.type === "TRANSFER" ? "INR" : (t.account?.currency ?? "INR")
                   )}
                 </p>
-                <Link
-                  href={`/transactions/${t.id}/edit`}
-                  className="text-sm font-medium text-zinc-700 hover:underline"
-                >
-                  Edit
-                </Link>
-                <DeleteTransactionButton
-                  transactionId={t.id}
-                  redirectTo="/transactions"
-                  isRecurring={!!t.recurringRuleId}
-                />
+                {t.isOpeningBalance ? (
+                  <Link
+                    href={`/accounts/${t.accountId}/edit`}
+                    className="text-sm font-medium text-zinc-700 hover:underline"
+                  >
+                    Edit account
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href={`/transactions/${t.id}/edit`}
+                      className="text-sm font-medium text-zinc-700 hover:underline"
+                    >
+                      Edit
+                    </Link>
+                    <DeleteTransactionButton
+                      transactionId={t.id}
+                      redirectTo="/transactions"
+                      isRecurring={!!t.recurringRuleId}
+                    />
+                  </>
+                )}
               </div>
             </li>
           ))}

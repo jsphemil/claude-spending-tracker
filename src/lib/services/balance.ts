@@ -50,32 +50,11 @@ export async function getAccountBalanceDeltas(
   return deltas;
 }
 
-type BalanceAccount = {
-  id: string;
-  openingBalance: number | string | { toString(): string };
-  openingBalanceDate: Date;
-};
-
-// An account contributes nothing to a balance computed as of a date before
-// it existed — otherwise its opening balance (dated whenever the account
-// was created) leaks backward into every earlier period, including ones
-// from before the account existed at all.
-export function applyDelta(account: BalanceAccount, deltas: Record<string, number>, asOf?: Date) {
-  if (asOf && asOf < account.openingBalanceDate) return 0;
-  return Number(account.openingBalance) + (deltas[account.id] ?? 0);
-}
-
-// The opening balance is a real economic event (money that became
-// available, or debt the account started with) happening on
-// openingBalanceDate — so for whichever period contains that date, it
-// counts as income (if positive) or expense (if negative), the same as
-// any other transaction would. Returns 0 if the date falls outside
-// [start, end]. Signed: positive = income, negative = expense.
-export function openingBalanceInPeriod(
-  account: BalanceAccount,
-  start: Date,
-  end: Date
-): number {
-  if (account.openingBalanceDate < start || account.openingBalanceDate > end) return 0;
-  return Number(account.openingBalance);
+// The opening balance is itself a real Transaction row (isOpeningBalance,
+// see lib/actions/accounts.ts), so it's already included in `deltas` —
+// dated on openingBalanceDate, it naturally drops out of `deltas` once
+// `asOf` (passed to getAccountBalanceDeltas) falls before that date. No
+// separate opening-balance handling needed here.
+export function applyDelta(accountId: string, deltas: Record<string, number>) {
+  return deltas[accountId] ?? 0;
 }

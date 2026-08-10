@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getVerifiedUserId } from "@/lib/supabase/server";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/constants/accounts";
 import { formatMoney } from "@/lib/services/format";
-import { applyDelta, getAccountBalanceDeltas, openingBalanceInPeriod } from "@/lib/services/balance";
+import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
 import {
   monthLabel,
   monthParamString,
@@ -58,13 +58,10 @@ export default async function DashboardPage({
 
   const balances = accounts.map((a) => ({
     account: a,
-    balance: applyDelta(a, deltasAtEnd, end),
+    balance: applyDelta(a.id, deltasAtEnd),
   }));
   const netWorth = balances.reduce((sum, b) => sum + b.balance, 0);
-  const carryForward = accounts.reduce(
-    (sum, a) => sum + applyDelta(a, deltasAtStart, periodStartCutoff),
-    0
-  );
+  const carryForward = accounts.reduce((sum, a) => sum + applyDelta(a.id, deltasAtStart), 0);
   const creditCardAccounts = balances.filter((b) => b.account.type === "CREDIT_CARD");
   const creditCardDebt =
     creditCardAccounts.length > 0
@@ -76,18 +73,12 @@ export default async function DashboardPage({
   // outflow from another, so across the whole portfolio they cancel out and
   // only add noise. (Individual account pages still show transfers, since
   // those aren't symmetric for a single account.)
-  let income = periodTransactions
+  const income = periodTransactions
     .filter((t) => t.type === "INCOME")
     .reduce((sum, t) => sum + Number(t.amount), 0);
-  let expense = periodTransactions
+  const expense = periodTransactions
     .filter((t) => t.type === "EXPENSE")
     .reduce((sum, t) => sum + Number(t.amount), 0);
-
-  for (const a of accounts) {
-    const ob = openingBalanceInPeriod(a, start, end);
-    if (ob > 0) income += ob;
-    else if (ob < 0) expense += -ob;
-  }
 
   const pieData = [
     { name: "Income", value: income, color: "#22c55e" },
@@ -240,9 +231,11 @@ export default async function DashboardPage({
               >
                 <div>
                   <p className="text-sm font-medium text-zinc-900">
-                    {t.type === "TRANSFER"
-                      ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
-                      : `${t.category?.name ?? "Uncategorized"} · ${t.account?.name}`}
+                    {t.isOpeningBalance
+                      ? `🏦 Opening balance · ${t.account?.name}`
+                      : t.type === "TRANSFER"
+                        ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
+                        : `${t.category?.name ?? "Uncategorized"} · ${t.account?.name}`}
                   </p>
                   <p className="text-xs text-zinc-500">
                     {t.date.toISOString().slice(0, 10)}
@@ -265,17 +258,28 @@ export default async function DashboardPage({
                       t.type === "TRANSFER" ? "INR" : (t.account?.currency ?? "INR")
                     )}
                   </p>
-                  <Link
-                    href={`/transactions/${t.id}/edit`}
-                    className="text-xs font-medium text-zinc-500 hover:underline"
-                  >
-                    Edit
-                  </Link>
-                  <DeleteTransactionButton
-                    transactionId={t.id}
-                    redirectTo="/"
-                    isRecurring={!!t.recurringRuleId}
-                  />
+                  {t.isOpeningBalance ? (
+                    <Link
+                      href={`/accounts/${t.accountId}/edit`}
+                      className="text-xs font-medium text-zinc-500 hover:underline"
+                    >
+                      Edit account
+                    </Link>
+                  ) : (
+                    <>
+                      <Link
+                        href={`/transactions/${t.id}/edit`}
+                        className="text-xs font-medium text-zinc-500 hover:underline"
+                      >
+                        Edit
+                      </Link>
+                      <DeleteTransactionButton
+                        transactionId={t.id}
+                        redirectTo="/"
+                        isRecurring={!!t.recurringRuleId}
+                      />
+                    </>
+                  )}
                 </div>
               </li>
             ))}

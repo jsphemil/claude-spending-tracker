@@ -116,6 +116,15 @@ model Transaction {
   toAccountId   String? // TRANSFER only
   categoryId    String? // required for INCOME/EXPENSE, null for TRANSFER
 
+  // System-generated row mirroring Account.openingBalance/openingBalanceDate
+  // (see lib/actions/accounts.ts) so the opening balance flows through every
+  // ledger query — transaction lists, summaries, calendars — the same way
+  // any other transaction does, instead of needing to be special-cased on
+  // every page that computes income/expense. Kept in sync on account
+  // create/update/delete; not directly editable/deletable through the
+  // normal transaction UI (see updateTransaction/deleteTransaction guards).
+  isOpeningBalance Boolean @default(false)
+
   // Recurring series (Phase 5). occurrenceDate is the schedule anchor — the
   // slot this row fills — and never changes; `date` is the actual date shown
   // and can diverge from it after a "just this one" edit. Plain (non-
