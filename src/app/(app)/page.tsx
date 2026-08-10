@@ -81,6 +81,24 @@ export default async function DashboardPage({
       ? creditCardAccounts.reduce((sum, b) => sum + Math.max(0, -b.balance), 0)
       : null;
 
+  // Composition of positive assets by liquidity, not a capacity gauge (so a
+  // regular flow-ratio pie is the right shape here, unlike the Used/
+  // Available ones above) — Credit Card balances are debt, not an asset,
+  // so they're excluded from the pie and shown as their own figure instead.
+  const assetAllocation = [
+    { name: "Liquid (Savings/Wallet)", types: ["SAVINGS", "WALLET"], color: "#3b82f6" },
+    { name: "Deposits (FD/RD)", types: ["DEPOSIT"], color: "#f59e0b" },
+    { name: "Invested", types: ["INVESTMENT"], color: "#8b5cf6" },
+  ]
+    .map((bucket) => ({
+      name: bucket.name,
+      color: bucket.color,
+      value: balances
+        .filter((b) => bucket.types.includes(b.account.type))
+        .reduce((sum, b) => sum + Math.max(0, b.balance), 0),
+    }))
+    .filter((b) => b.value > 0);
+
   // Portfolio-level income/expense deliberately excludes transfers — every
   // transfer's inflow to one of the user's accounts is matched by an equal
   // outflow from another, so across the whole portfolio they cancel out and
@@ -178,6 +196,20 @@ export default async function DashboardPage({
           <NetWorthTrendChart data={netWorthTrendData} currency="INR" />
         </div>
       </div>
+
+      {assetAllocation.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-sm font-semibold text-zinc-900">Asset Allocation</h2>
+          <div className="mt-2 rounded-lg border border-zinc-200 bg-white p-3">
+            <CategoryPieChart data={assetAllocation} currency="INR" showDataLabels height={220} />
+            {creditCardDebt !== null && creditCardDebt > 0 && (
+              <p className="mt-2 text-center text-xs text-zinc-500">
+                Not included above — <span className="font-medium text-rose-600">Credit card debt: {formatMoney(creditCardDebt, "INR")}</span>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="mt-8">
         <h2 className="text-sm font-semibold text-zinc-900">{monthLabel(monthKey)}</h2>
