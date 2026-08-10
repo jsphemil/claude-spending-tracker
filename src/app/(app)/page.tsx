@@ -80,9 +80,18 @@ export default async function DashboardPage({
     .filter((t) => t.type === "EXPENSE")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
+  // A gauge, not a flow-ratio pie: the ring's total capacity is what the
+  // portfolio had available this period (Carry Forward + Income, transfers
+  // excluded since they cancel out across accounts), Used eats into it, and
+  // Available is what's left — which is exactly Net Worth, since transfers
+  // net to zero at the portfolio level (Carry Forward + Income − Expense =
+  // Net Worth). Clamped to 0 rather than going negative so an overspent
+  // portfolio still renders as a full ring instead of vanishing.
+  const totalAvailable = carryForward + income;
+  const percentUsed = totalAvailable > 0 ? (expense / totalAvailable) * 100 : null;
   const pieData = [
-    { name: "Income", value: income, color: "#22c55e" },
-    { name: "Expense", value: expense, color: "#ef4444" },
+    { name: "Used", value: expense, color: "#ef4444" },
+    { name: "Available", value: Math.max(0, totalAvailable - expense), color: "#22c55e" },
   ].filter((d) => d.value > 0);
 
   const totalsByDate = new Map<string, number>();
@@ -120,7 +129,13 @@ export default async function DashboardPage({
           showDataLabels
           centerLabel="Net worth"
           centerValue={formatMoney(netWorth, "INR")}
+          centerSubtext={percentUsed !== null ? `${percentUsed.toFixed(0)}% used` : undefined}
         />
+        {netWorth < 0 && (
+          <p className="mt-1 text-center text-xs font-medium text-rose-600">
+            Net position: {formatMoney(netWorth, "INR")}
+          </p>
+        )}
       </div>
 
       <div className="mt-4 divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">

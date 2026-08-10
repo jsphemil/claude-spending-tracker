@@ -137,11 +137,14 @@ export default async function AccountDetailPage({
   const leftToSpend =
     account.type === "CREDIT_CARD" && account.creditLimit != null ? availableCredit! : endingBalance;
 
+  // A gauge, not a flow-ratio pie: total capacity is what this account had
+  // available this period (Carry Forward + Total In), Used eats into it,
+  // Available is what's left — exactly `leftToSpend`/`endingBalance`.
+  // Category/counterpart-account detail for Income/Expense/Transfers still
+  // lives in the Breakdown section below, unchanged.
   const cashFlowData = [
-    { name: "Income", value: income, color: "#22c55e" },
-    { name: "Transfer In", value: transferIn, color: "#3b82f6" },
-    { name: "Expense", value: expense, color: "#ef4444" },
-    { name: "Transfer Out", value: transferOut, color: "#eab308" },
+    { name: "Used", value: totalOut, color: "#ef4444" },
+    { name: "Available", value: Math.max(0, availableFunds - totalOut), color: "#22c55e" },
   ].filter((d) => d.value > 0);
 
   // For a credit card, "this period's flow" isn't the useful thing to see
@@ -224,6 +227,11 @@ export default async function AccountDetailPage({
           centerValue={pieCenterValue}
           centerSubtext={pieCenterSubtext}
         />
+        {!isCreditGauge && endingBalance < 0 && (
+          <p className="mt-1 text-center text-xs font-medium text-rose-600">
+            Overdrawn by {formatMoney(-endingBalance, account.currency)}
+          </p>
+        )}
       </div>
 
       {account.type === "CREDIT_CARD" && account.creditLimit && (
