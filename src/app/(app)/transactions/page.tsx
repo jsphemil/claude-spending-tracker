@@ -195,6 +195,12 @@ export default async function TransactionsPage({
                 ) : (
                   <>
                     <Link
+                      href={`/transactions/new?duplicateId=${t.id}`}
+                      className="text-sm font-medium text-zinc-500 hover:underline"
+                    >
+                      Duplicate
+                    </Link>
+                    <Link
                       href={`/transactions/${t.id}/edit`}
                       className="text-sm font-medium text-zinc-700 hover:underline"
                     >

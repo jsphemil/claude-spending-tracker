@@ -7,16 +7,31 @@ import { createTransaction } from "@/lib/actions/transactions";
 export default async function NewTransactionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; accountId?: string; date?: string }>;
+  searchParams: Promise<{ type?: string; accountId?: string; date?: string; duplicateId?: string }>;
 }) {
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
 
-  const { type: rawType, accountId, date } = await searchParams;
-  const type = ["INCOME", "EXPENSE", "TRANSFER"].includes(rawType ?? "")
-    ? (rawType as "INCOME" | "EXPENSE" | "TRANSFER")
-    : "EXPENSE";
+  const { type: rawType, accountId, date, duplicateId } = await searchParams;
   const isValidDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date);
+
+  // Duplicate-last-transaction quick entry: prefill everything from a past
+  // transaction except the date, which defaults to today (see
+  // TransactionForm's emptyValues) — a duplicate is a new occurrence
+  // happening now, not a copy of when the original happened. The
+  // opening-balance row is excluded, same as its edit/delete guards.
+  const duplicateSource = duplicateId
+    ? await prisma.transaction.findFirst({
+        where: { id: duplicateId, userId, isOpeningBalance: false },
+        include: { tags: { include: { tag: true } } },
+      })
+    : null;
+
+  const type = duplicateSource
+    ? duplicateSource.type
+    : ["INCOME", "EXPENSE", "TRANSFER"].includes(rawType ?? "")
+      ? (rawType as "INCOME" | "EXPENSE" | "TRANSFER")
+      : "EXPENSE";
 
   const [accounts, categories, tags] = await Promise.all([
     prisma.account.findMany({
@@ -35,6 +50,9 @@ export default async function NewTransactionPage({
   return (
     <div className="p-6">
       <h1 className="text-xl font-semibold text-zinc-900">New Transaction</h1>
+      {duplicateSource && (
+        <p className="mt-1 text-sm text-zinc-500">Duplicated from a previous transaction — dated today.</p>
+      )}
       <div className="mt-6">
         <TransactionForm
           action={createTransaction}
@@ -45,8 +63,21 @@ export default async function NewTransactionPage({
           allowRecurring
           defaultValues={{
             type,
-            accountId: type !== "TRANSFER" ? accountId : undefined,
-            fromAccountId: type === "TRANSFER" ? accountId : undefined,
+            amount: duplicateSource ? duplicateSource.amount.toString() : undefined,
+            description: duplicateSource?.description ?? undefined,
+            accountId: duplicateSource
+              ? (duplicateSource.accountId ?? undefined)
+              : type !== "TRANSFER"
+                ? accountId
+                : undefined,
+            categoryId: duplicateSource?.categoryId ?? undefined,
+            fromAccountId: duplicateSource
+              ? (duplicateSource.fromAccountId ?? undefined)
+              : type === "TRANSFER"
+                ? accountId
+                : undefined,
+            toAccountId: duplicateSource?.toAccountId ?? undefined,
+            tags: duplicateSource ? duplicateSource.tags.map((t) => t.tag.name).join(", ") : undefined,
             date: isValidDate ? date : undefined,
           }}
         />

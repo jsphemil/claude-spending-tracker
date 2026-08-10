@@ -414,6 +414,12 @@ export default async function AccountDetailPage({
                   ) : (
                     <>
                       <Link
+                        href={`/transactions/new?duplicateId=${t.id}`}
+                        className="text-xs font-medium text-zinc-500 hover:underline"
+                      >
+                        Duplicate
+                      </Link>
+                      <Link
                         href={`/transactions/${t.id}/edit`}
                         className="text-xs font-medium text-zinc-500 hover:underline"
                       >
