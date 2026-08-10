@@ -6,7 +6,7 @@ import {
   ACCOUNT_ICONS,
   ACCOUNT_TYPES,
   ACCOUNT_TYPE_LABELS,
-  COMMON_CURRENCIES,
+  CURRENCIES,
   DEFAULT_ACCOUNT_COLOR,
 } from "@/lib/constants/accounts";
 import type { AccountActionState } from "@/lib/actions/accounts";
@@ -22,6 +22,9 @@ type AccountFormValues = {
   openingBalance: string;
   openingBalanceDate: string;
   creditLimit: string;
+  budgetModeEnabled: string; // "" = inherit, "true" | "false" = override
+  monthlyBudget: string;
+  showFutureTransactions: string; // "" = inherit, "true" | "false" = override
 };
 
 const emptyValues: AccountFormValues = {
@@ -33,12 +36,17 @@ const emptyValues: AccountFormValues = {
   openingBalance: "0",
   openingBalanceDate: new Date().toISOString().slice(0, 10),
   creditLimit: "",
+  budgetModeEnabled: "",
+  monthlyBudget: "",
+  showFutureTransactions: "",
 };
 
 export function AccountForm({
   action,
   defaultValues,
   submitLabel,
+  globalBudgetMode,
+  globalShowFuture,
 }: {
   action: (
     state: AccountActionState,
@@ -46,11 +54,16 @@ export function AccountForm({
   ) => Promise<AccountActionState>;
   defaultValues?: Partial<AccountFormValues>;
   submitLabel: string;
+  /** Profile-level defaults, shown so "Inherit" reads as what it actually resolves to. */
+  globalBudgetMode: boolean;
+  globalShowFuture: boolean;
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(action, initialState);
   const values = { ...emptyValues, ...defaultValues };
   const [type, setType] = useState<(typeof ACCOUNT_TYPES)[number]>(values.type);
+  const [budgetModeEnabled, setBudgetModeEnabled] = useState(values.budgetModeEnabled);
+  const effectiveBudgetMode = budgetModeEnabled === "" ? globalBudgetMode : budgetModeEnabled === "true";
 
   return (
     <form action={formAction} className="max-w-md space-y-4">
@@ -145,9 +158,9 @@ export function AccountForm({
             defaultValue={values.currency}
             className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
           >
-            {COMMON_CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code} — {c.name}
               </option>
             ))}
           </select>
@@ -184,6 +197,59 @@ export function AccountForm({
           />
         </div>
       )}
+
+      <div className="space-y-4 rounded-md border border-zinc-200 p-3">
+        <div className="space-y-1">
+          <label htmlFor="budgetModeEnabled" className="text-sm font-medium text-zinc-700">
+            Budget Mode
+          </label>
+          <select
+            id="budgetModeEnabled"
+            name="budgetModeEnabled"
+            defaultValue={values.budgetModeEnabled}
+            onChange={(e) => setBudgetModeEnabled(e.target.value)}
+            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+          >
+            <option value="">Inherit global setting (currently {globalBudgetMode ? "On" : "Off"})</option>
+            <option value="true">On for this account</option>
+            <option value="false">Off for this account</option>
+          </select>
+        </div>
+
+        {effectiveBudgetMode && (
+          <div className="space-y-1">
+            <label htmlFor="monthlyBudget" className="text-sm font-medium text-zinc-700">
+              Monthly budget
+            </label>
+            <input
+              id="monthlyBudget"
+              name="monthlyBudget"
+              type="number"
+              step="0.01"
+              min="0.01"
+              placeholder="e.g. 30000"
+              defaultValue={values.monthlyBudget}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+            />
+          </div>
+        )}
+
+        <div className="space-y-1">
+          <label htmlFor="showFutureTransactions" className="text-sm font-medium text-zinc-700">
+            Show Future Transactions
+          </label>
+          <select
+            id="showFutureTransactions"
+            name="showFutureTransactions"
+            defaultValue={values.showFutureTransactions}
+            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+          >
+            <option value="">Inherit global setting (currently {globalShowFuture ? "Show" : "Hide"})</option>
+            <option value="true">Show for this account</option>
+            <option value="false">Hide for this account</option>
+          </select>
+        </div>
+      </div>
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
 

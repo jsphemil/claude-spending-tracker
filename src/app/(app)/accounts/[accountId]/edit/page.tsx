@@ -13,9 +13,10 @@ export default async function EditAccountPage({
   if (!userId) redirect("/login");
 
   const { accountId } = await params;
-  const account = await prisma.account.findFirst({
-    where: { id: accountId, userId },
-  });
+  const [account, profile] = await Promise.all([
+    prisma.account.findFirst({ where: { id: accountId, userId } }),
+    prisma.profile.findUniqueOrThrow({ where: { id: userId } }),
+  ]);
   if (!account) notFound();
 
   return (
@@ -25,6 +26,8 @@ export default async function EditAccountPage({
         <AccountForm
           action={updateAccount.bind(null, account.id)}
           submitLabel="Save changes"
+          globalBudgetMode={profile.budgetModeGlobal}
+          globalShowFuture={profile.showFutureTransactionsGlobal}
           defaultValues={{
             name: account.name,
             type: account.type,
@@ -34,6 +37,10 @@ export default async function EditAccountPage({
             openingBalance: account.openingBalance.toString(),
             openingBalanceDate: account.openingBalanceDate.toISOString().slice(0, 10),
             creditLimit: account.creditLimit?.toString() ?? "",
+            budgetModeEnabled: account.budgetModeEnabled === null ? "" : String(account.budgetModeEnabled),
+            monthlyBudget: account.monthlyBudget?.toString() ?? "",
+            showFutureTransactions:
+              account.showFutureTransactions === null ? "" : String(account.showFutureTransactions),
           }}
         />
       </div>

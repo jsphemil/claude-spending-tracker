@@ -7,6 +7,7 @@ import { formatMoney } from "@/lib/services/format";
 import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
 import {
   daysRemainingInMonth,
+  isSameMonthUTC,
   monthLabel,
   monthParamString,
   monthRange,
@@ -14,6 +15,7 @@ import {
   previousMonthEnd,
   shiftMonth,
 } from "@/lib/services/calendar";
+import { resolveAccountSettings } from "@/lib/services/settings";
 import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
 import { ensureMaterialized } from "@/lib/services/recurrence";
@@ -38,8 +40,9 @@ export default async function AccountDetailPage({
 
   await ensureMaterialized(userId, { through: end });
 
-  const [account, deltasAtStart, deltasAtEnd, monthTransactions] = await Promise.all([
+  const [account, profile, deltasAtStart, deltasAtEnd, monthTransactions] = await Promise.all([
     prisma.account.findFirst({ where: { id: accountId, userId } }),
+    prisma.profile.findUniqueOrThrow({ where: { id: userId } }),
     getAccountBalanceDeltas(userId, { asOf: periodStartCutoff }),
     getAccountBalanceDeltas(userId, { asOf: end }),
     prisma.transaction.findMany({
@@ -58,6 +61,22 @@ export default async function AccountDetailPage({
     }),
   ]);
   if (!account) notFound();
+
+  const effectiveSettings = resolveAccountSettings(profile, account);
+
+  // Spec 5.6: hides future-dated *rows* from the list only — it's a
+  // declutter toggle, not a recalculation. Totals/balance/gauge stay
+  // complete, since a future-dated transaction is still a real recorded
+  // commitment (the whole balance model this session was built around
+  // treating it that way). Only applies while viewing the actual current
+  // month — browsing to a future month is an explicit choice to see it.
+  const now = new Date();
+  const todayDateOnly = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const hidingFuture = !effectiveSettings.showFutureTransactions && isSameMonthUTC(now, monthKey);
+  const visibleTransactions = hidingFuture
+    ? monthTransactions.filter((t) => t.date <= todayDateOnly)
+    : monthTransactions;
+  const hiddenFutureCount = monthTransactions.length - visibleTransactions.length;
 
   // Payoff projection is about "starting from where you are right now,"
   // not whichever historical/future month is being browsed elsewhere on
@@ -296,6 +315,29 @@ export default async function AccountDetailPage({
         </p>
       )}
 
+      {effectiveSettings.budgetModeEnabled && account.monthlyBudget && (
+        <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium text-zinc-700">Budget Mode</span>
+            <span className={totalOut > Number(account.monthlyBudget) ? "font-medium text-rose-600" : "text-zinc-500"}>
+              {formatMoney(totalOut, account.currency)} of {formatMoney(Number(account.monthlyBudget), account.currency)}
+            </span>
+          </div>
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-200">
+            <div
+              className={`h-full ${totalOut > Number(account.monthlyBudget) ? "bg-rose-500" : "bg-blue-500"}`}
+              style={{ width: `${Math.min(100, (totalOut / Number(account.monthlyBudget)) * 100)}%` }}
+            />
+          </div>
+          {totalOut > Number(account.monthlyBudget) && (
+            <p className="mt-1 text-xs font-medium text-rose-600">
+              {formatMoney(totalOut - Number(account.monthlyBudget), account.currency)} over this account&rsquo;s
+              monthly budget
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="mt-6 divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
         <div className="flex items-center justify-between px-4 py-3 text-sm">
           <span className="text-zinc-500">Carry Forward</span>
@@ -397,12 +439,21 @@ export default async function AccountDetailPage({
         <h2 className="text-sm font-semibold text-zinc-900">
           {monthLabel(monthKey)} transactions
         </h2>
+        {hiddenFutureCount > 0 && (
+          <p className="mt-1 text-xs text-zinc-500">
+            {hiddenFutureCount} upcoming transaction{hiddenFutureCount === 1 ? "" : "s"} hidden —{" "}
+            <Link href="/settings" className="hover:underline">
+              Show Future Transactions is off
+            </Link>
+            .
+          </p>
+        )}
 
-        {monthTransactions.length === 0 ? (
+        {visibleTransactions.length === 0 ? (
           <p className="mt-3 text-sm text-zinc-600">No transactions this month.</p>
         ) : (
           <ul className="mt-3 space-y-2">
-            {monthTransactions.map((t) => (
+            {visibleTransactions.map((t) => (
               <li
                 key={t.id}
                 className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3 py-2"
