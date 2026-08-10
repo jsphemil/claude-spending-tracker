@@ -361,3 +361,28 @@ export function describeSchedule(intervalCount: number, intervalUnit: Recurrence
   const unit = UNIT_LABELS[intervalUnit];
   return intervalCount === 1 ? `Repeats every ${unit}` : `Repeats every ${intervalCount} ${unit}s`;
 }
+
+// Normalizes any cadence to a monthly figure so a weekly ₹500 charge and a
+// yearly ₹6,000 one can be summed into one meaningful "commitments per
+// month" total. Average month/week length (365.25/12 days), not a fixed
+// 30 — keeps a weekly rule's monthly-equivalent stable regardless of which
+// month you'd otherwise divide by.
+const AVG_DAYS_PER_MONTH = 365.25 / 12;
+const AVG_WEEKS_PER_MONTH = AVG_DAYS_PER_MONTH / 7;
+
+export function monthlyEquivalent(
+  amount: number,
+  intervalCount: number,
+  intervalUnit: RecurrenceUnit
+): number {
+  switch (intervalUnit) {
+    case "DAY":
+      return (amount * AVG_DAYS_PER_MONTH) / intervalCount;
+    case "WEEK":
+      return (amount * AVG_WEEKS_PER_MONTH) / intervalCount;
+    case "MONTH":
+      return amount / intervalCount;
+    case "YEAR":
+      return amount / (12 * intervalCount);
+  }
+}

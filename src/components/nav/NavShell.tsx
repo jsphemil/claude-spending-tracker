@@ -45,11 +45,11 @@ export function BottomTabBar() {
         <Link
           key={item.href}
           href={item.href}
-          className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium ${
+          className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-center text-[10px] font-medium leading-tight ${
             isActive(pathname, item.href) ? "text-zinc-900" : "text-zinc-500"
           }`}
         >
-          {item.label}
+          <span className="w-full truncate px-0.5">{item.label}</span>
         </Link>
       ))}
     </nav>
