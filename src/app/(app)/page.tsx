@@ -41,7 +41,7 @@ export default async function DashboardPage({
   const trendMonths = Array.from({ length: 12 }, (_, i) => shiftMonth(monthKey, i - 11));
   const trendCutoffs = trendMonths.map((mk) => monthRange(mk).end);
 
-  const [accounts, deltasAtStart, deltasAtEnd, periodTransactions, dailyExpenseTotals, recentTransactions, netWorthSeries] =
+  const [accounts, deltasAtStart, deltasAtEnd, periodTransactions, dailyExpenseTotals, recentTransactions, netWorthSeries, goals] =
     await Promise.all([
       prisma.account.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
       getAccountBalanceDeltas(userId, { asOf: periodStartCutoff }),
@@ -62,6 +62,7 @@ export default async function DashboardPage({
         include: { account: true, category: true, fromAccount: true, toAccount: true },
       }),
       getNetWorthSeries(userId, trendCutoffs),
+      prisma.goal.findMany({ where: { userId }, orderBy: { createdAt: "asc" }, take: 3 }),
     ]);
 
   const netWorthTrendData = trendMonths.map((mk, i) => ({
@@ -210,6 +211,40 @@ export default async function DashboardPage({
           </div>
         </div>
       )}
+
+      <div className="mt-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-zinc-900">Goals</h2>
+          <Link href="/goals" className="text-sm font-medium text-zinc-500 hover:underline">
+            {goals.length === 0 ? "Set a goal" : "View all"}
+          </Link>
+        </div>
+
+        {goals.length === 0 ? (
+          <p className="mt-3 text-sm text-zinc-600">No goals yet.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {goals.map((goal) => {
+              const target = Number(goal.targetAmount);
+              const percent = Math.min(100, Math.max(0, (netWorth / target) * 100));
+              return (
+                <li key={goal.id} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-zinc-900">{goal.name}</span>
+                    <span className="text-zinc-500">{percent.toFixed(0)}%</span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-200">
+                    <div
+                      className={`h-full ${percent >= 100 ? "bg-emerald-500" : "bg-blue-500"}`}
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
 
       <div className="mt-8">
         <h2 className="text-sm font-semibold text-zinc-900">{monthLabel(monthKey)}</h2>

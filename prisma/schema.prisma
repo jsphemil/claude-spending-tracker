@@ -27,6 +27,24 @@ model Profile {
   transactions   Transaction[]
   recurringRules RecurringRule[]
   tags           Tag[]
+  goals          Goal[]
+}
+
+// v1 tracks net worth only, not a specific account — covers the primary
+// long-term use case ("reach ₹10L net worth by Dec 2027") without needing
+// a parallel per-account growth-rate series alongside getNetWorthSeries.
+model Goal {
+  id           String    @id @default(cuid())
+  userId       String    @db.Uuid
+  name         String
+  targetAmount Decimal   @db.Decimal(14, 2)
+  targetDate   DateTime? @db.Date // null = no deadline, just a target
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  profile Profile @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 enum AccountType {
