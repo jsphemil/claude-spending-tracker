@@ -11,8 +11,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen flex-1">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-zinc-900 focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+      >
+        Skip to main content
+      </a>
       <SideNav />
-      <main className="flex-1 pb-16 md:pb-0">{children}</main>
+      <main id="main-content" className="flex-1 pb-16 md:pb-0">
+        {children}
+      </main>
       <BottomTabBar />
       <ClaudeFabPlaceholder />
     </div>

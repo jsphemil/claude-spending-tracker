@@ -137,9 +137,9 @@ export async function ensureMaterialized(userId: string, opts?: { through?: Date
   const rules = await prisma.recurringRule.findMany({
     where: { userId, isActive: true, startDate: { lte: horizon } },
   });
-  for (const rule of rules) {
-    await materializeRule(rule, horizon);
-  }
+  // Independent rules — no shared state between them — so materialize
+  // concurrently rather than one round-trip at a time.
+  await Promise.all(rules.map((rule) => materializeRule(rule, horizon)));
 }
 
 export async function ensureMaterializedForAllUsers(): Promise<void> {

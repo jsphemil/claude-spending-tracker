@@ -20,19 +20,20 @@ export function parseTagInput(raw: FormDataEntryValue | null): string[] {
 
 // Tags are free-form and reusable — created on the fly the first time a name
 // is used, matched by name (case-sensitive) thereafter. See spec 5.3a.
+// Two queries total regardless of how many names come in (createMany +
+// findMany), instead of one upsert round-trip per name.
 export async function resolveTagIds(userId: string, names: string[]): Promise<string[]> {
   if (names.length === 0) return [];
-  const ids: string[] = [];
-  for (const name of names) {
-    const tag = await prisma.tag.upsert({
-      where: { userId_name: { userId, name } },
-      create: { userId, name },
-      update: {},
-      select: { id: true },
-    });
-    ids.push(tag.id);
-  }
-  return ids;
+  await prisma.tag.createMany({
+    data: names.map((name) => ({ userId, name })),
+    skipDuplicates: true,
+  });
+  const tags = await prisma.tag.findMany({
+    where: { userId, name: { in: names } },
+    select: { id: true, name: true },
+  });
+  const idByName = new Map(tags.map((t) => [t.name, t.id]));
+  return names.map((name) => idByName.get(name)).filter((id): id is string => !!id);
 }
 
 export async function syncTransactionTags(transactionId: string, tagIds: string[]): Promise<void> {
