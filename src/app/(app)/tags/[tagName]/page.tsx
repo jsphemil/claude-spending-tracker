@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { getVerifiedUserId } from "@/lib/supabase/server";
@@ -39,7 +40,10 @@ export default async function TagSummaryPage({
 
   return (
     <div className="p-6">
-      <h1 className="text-xl font-semibold text-zinc-900">🏷️ {tag.name}</h1>
+      <Link href="/transactions" className="text-sm font-medium text-zinc-500 hover:underline">
+        ← Back to Transactions
+      </Link>
+      <h1 className="mt-4 text-xl font-semibold text-zinc-900">🏷️ {tag.name}</h1>
 
       <div className="mt-6 grid grid-cols-3 gap-4 rounded-lg border border-zinc-200 bg-white p-4">
         <div>

@@ -69,7 +69,9 @@ export async function deleteAccount(
     prisma.recurringRule.count({
       where: {
         userId,
-        isActive: true,
+        // Even a closed rule (isActive: false) still holds a foreign key to
+        // this account — the DB relation is onDelete: Restrict on purpose,
+        // so this check has to match that, not just count active rules.
         OR: [{ accountId }, { fromAccountId: accountId }, { toAccountId: accountId }],
       },
     }),
@@ -81,7 +83,7 @@ export async function deleteAccount(
   }
   if (activeRuleCount > 0) {
     return {
-      error: `This account has ${activeRuleCount} active recurring rule${activeRuleCount === 1 ? "" : "s"} — stop them first.`,
+      error: `This account has ${activeRuleCount} recurring rule${activeRuleCount === 1 ? "" : "s"} in its history (active or stopped) — this account can't be deleted while that history exists.`,
     };
   }
 

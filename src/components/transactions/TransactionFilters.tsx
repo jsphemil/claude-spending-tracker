@@ -73,10 +73,10 @@ export function TransactionFilters({
       {hasFilters && (
         <button
           type="button"
-          onClick={() => router.push("/transactions")}
+          onClick={() => router.push("/transactions?all=1")}
           className="text-sm font-medium text-zinc-500 hover:underline"
         >
-          Clear
+          Clear (show all time)
         </button>
       )}
     </div>

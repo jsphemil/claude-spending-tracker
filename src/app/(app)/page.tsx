@@ -12,9 +12,10 @@ import {
   parseMonthParam,
   previousMonthEnd,
   shiftMonth,
+  toDateKey,
 } from "@/lib/services/calendar";
-import { addToBucket, sortedBuckets, type Bucket } from "@/lib/services/breakdown";
 import { CategoryPieChart } from "@/components/charts/CategoryPieChart";
+import { CalendarMonthGrid } from "@/components/calendar/CalendarMonthGrid";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
 import { ensureMaterialized } from "@/lib/services/recurrence";
 
@@ -33,17 +34,18 @@ export default async function DashboardPage({
   const { start, end } = monthRange(monthKey);
   const periodStartCutoff = previousMonthEnd(monthKey);
 
-  const [accounts, deltasAtStart, deltasAtEnd, periodTransactions, transferAgg, recentTransactions] =
+  const [accounts, deltasAtStart, deltasAtEnd, periodTransactions, dailyExpenseTotals, recentTransactions] =
     await Promise.all([
       prisma.account.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
       getAccountBalanceDeltas(userId, { asOf: periodStartCutoff }),
       getAccountBalanceDeltas(userId, { asOf: end }),
       prisma.transaction.findMany({
         where: { userId, type: { in: ["INCOME", "EXPENSE"] }, date: { gte: start, lte: end } },
-        include: { category: true },
+        select: { type: true, amount: true },
       }),
-      prisma.transaction.aggregate({
-        where: { userId, type: "TRANSFER", date: { gte: start, lte: end } },
+      prisma.transaction.groupBy({
+        by: ["date"],
+        where: { userId, type: "EXPENSE", date: { gte: start, lte: end } },
         _sum: { amount: true },
       }),
       prisma.transaction.findMany({
@@ -69,64 +71,33 @@ export default async function DashboardPage({
       ? creditCardAccounts.reduce((sum, b) => sum + Math.max(0, -b.balance), 0)
       : null;
 
-  const incomeByCategory = new Map<string, Bucket>();
-  const expenseByCategory = new Map<string, Bucket>();
-  let income = 0;
-  let expense = 0;
-
-  for (const t of periodTransactions) {
-    const amt = Number(t.amount);
-    if (t.type === "INCOME") {
-      income += amt;
-      addToBucket(
-        incomeByCategory,
-        t.categoryId ?? "uncategorized",
-        t.category?.name ?? "Uncategorized",
-        t.category?.icon ?? "❓",
-        amt
-      );
-    } else {
-      expense += amt;
-      addToBucket(
-        expenseByCategory,
-        t.categoryId ?? "uncategorized",
-        t.category?.name ?? "Uncategorized",
-        t.category?.icon ?? "❓",
-        amt
-      );
-    }
-  }
+  // Portfolio-level income/expense deliberately excludes transfers — every
+  // transfer's inflow to one of the user's accounts is matched by an equal
+  // outflow from another, so across the whole portfolio they cancel out and
+  // only add noise. (Individual account pages still show transfers, since
+  // those aren't symmetric for a single account.)
+  let income = periodTransactions
+    .filter((t) => t.type === "INCOME")
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+  let expense = periodTransactions
+    .filter((t) => t.type === "EXPENSE")
+    .reduce((sum, t) => sum + Number(t.amount), 0);
 
   for (const a of accounts) {
     const ob = openingBalanceInPeriod(a, start, end);
-    if (ob > 0) {
-      income += ob;
-      addToBucket(incomeByCategory, "opening-balance", "Opening Balance", "🏦", ob);
-    } else if (ob < 0) {
-      expense += -ob;
-      addToBucket(expenseByCategory, "opening-balance", "Opening Balance", "🏦", -ob);
-    }
+    if (ob > 0) income += ob;
+    else if (ob < 0) expense += -ob;
   }
 
-  const transferSum = Number(transferAgg._sum.amount ?? 0);
-  const totalIn = income + transferSum;
-  const totalOut = expense + transferSum;
-  const leftToSpend = totalIn - totalOut;
-
-  const categories = await prisma.category.findMany({
-    where: { userId },
-    select: { id: true, color: true },
-  });
-  const colorById = new Map(categories.map((c) => [c.id, c.color]));
-  const toPieData = (buckets: Bucket[]) =>
-    buckets.map((b) => ({ name: b.name, value: b.total, color: colorById.get(b.key) ?? "#a1a1aa" }));
-
-  const cashFlowData = [
+  const pieData = [
     { name: "Income", value: income, color: "#22c55e" },
-    { name: "Transfer In", value: transferSum, color: "#3b82f6" },
     { name: "Expense", value: expense, color: "#ef4444" },
-    { name: "Transfer Out", value: transferSum, color: "#eab308" },
   ].filter((d) => d.value > 0);
+
+  const totalsByDate = new Map<string, number>();
+  for (const row of dailyExpenseTotals) {
+    totalsByDate.set(toDateKey(row.date), Number(row._sum.amount ?? 0));
+  }
 
   const prevMonth = monthParamString(shiftMonth(monthKey, -1));
   const nextMonth = monthParamString(shiftMonth(monthKey, 1));
@@ -151,8 +122,15 @@ export default async function DashboardPage({
         </Link>
       </div>
 
-      <p className="mt-4 text-sm text-zinc-500">Net worth as of end of {monthLabel(monthKey)}</p>
-      <p className="text-3xl font-semibold text-zinc-900">{formatMoney(netWorth, "INR")}</p>
+      <div className="mt-4">
+        <CategoryPieChart
+          data={pieData}
+          currency="INR"
+          showDataLabels
+          centerLabel="Net worth"
+          centerValue={formatMoney(netWorth, "INR")}
+        />
+      </div>
 
       <div className="mt-4 divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
         <div className="flex items-center justify-between px-4 py-3 text-sm">
@@ -160,18 +138,12 @@ export default async function DashboardPage({
           <span className="font-medium text-zinc-900">{formatMoney(carryForward, "INR")}</span>
         </div>
         <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-zinc-500">Total In</span>
-          <span className="font-medium text-emerald-700">{formatMoney(totalIn, "INR")}</span>
+          <span className="text-zinc-500">Income</span>
+          <span className="font-medium text-emerald-700">{formatMoney(income, "INR")}</span>
         </div>
         <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-zinc-500">Total Out</span>
-          <span className="font-medium text-rose-700">{formatMoney(totalOut, "INR")}</span>
-        </div>
-        <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-zinc-500">Left to Spend</span>
-          <span className={`font-medium ${leftToSpend >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
-            {formatMoney(leftToSpend, "INR")}
-          </span>
+          <span className="text-zinc-500">Expense</span>
+          <span className="font-medium text-rose-700">{formatMoney(expense, "INR")}</span>
         </div>
         {creditCardDebt !== null && (
           <div className="flex items-center justify-between px-4 py-3 text-sm">
@@ -181,8 +153,11 @@ export default async function DashboardPage({
         )}
       </div>
 
-      <div className="mt-6">
-        <CategoryPieChart data={cashFlowData} currency="INR" />
+      <div className="mt-8">
+        <h2 className="text-sm font-semibold text-zinc-900">{monthLabel(monthKey)}</h2>
+        <div className="mt-2">
+          <CalendarMonthGrid monthKey={monthKey} totalsByDate={totalsByDate} />
+        </div>
       </div>
 
       <div className="mt-6 grid grid-cols-3 gap-2">
@@ -204,29 +179,6 @@ export default async function DashboardPage({
         >
           Transfer
         </Link>
-      </div>
-
-      <div className="mt-8">
-        <h2 className="text-sm font-semibold text-zinc-900">Income by category</h2>
-        <CategoryPieChart data={toPieData(sortedBuckets(incomeByCategory))} currency="INR" />
-      </div>
-
-      <div className="mt-6">
-        <h2 className="text-sm font-semibold text-zinc-900">Expense by category</h2>
-        <CategoryPieChart data={toPieData(sortedBuckets(expenseByCategory))} currency="INR" />
-
-        {sortedBuckets(expenseByCategory).length > 0 && (
-          <ul className="mt-3 space-y-1">
-            {sortedBuckets(expenseByCategory).map((b) => (
-              <li key={b.key} className="flex items-center justify-between text-sm">
-                <span className="text-zinc-700">
-                  {b.icon} {b.name}
-                </span>
-                <span className="font-medium text-rose-700">{formatMoney(b.total, "INR")}</span>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
 
       <div className="mt-10">

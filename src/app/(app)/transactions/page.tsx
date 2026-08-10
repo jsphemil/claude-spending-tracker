@@ -7,6 +7,7 @@ import { TransactionFilters } from "@/components/transactions/TransactionFilters
 import { SummaryBand } from "@/components/transactions/SummaryBand";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
 import { ensureMaterialized } from "@/lib/services/recurrence";
+import { monthRange, parseMonthParam, toDateKey } from "@/lib/services/calendar";
 import type { Prisma } from "@/generated/prisma/client";
 
 export default async function TransactionsPage({
@@ -17,6 +18,7 @@ export default async function TransactionsPage({
     categoryId?: string;
     from?: string;
     to?: string;
+    all?: string;
   }>;
 }) {
   const userId = await getVerifiedUserId();
@@ -24,7 +26,21 @@ export default async function TransactionsPage({
 
   await ensureMaterialized(userId);
 
-  const { accountId, categoryId, from, to } = await searchParams;
+  const { accountId, categoryId, from, to, all } = await searchParams;
+
+  // Default to the current month so a fresh visit doesn't dump the entire
+  // transaction history (including future-materialized recurring rows) —
+  // still fully overridable via the date filters below, or via "all" for
+  // an explicit all-time view (see TransactionFilters' Clear button).
+  if (!from && !to && !all) {
+    const { start, end } = monthRange(parseMonthParam(undefined));
+    const params = new URLSearchParams();
+    if (accountId) params.set("accountId", accountId);
+    if (categoryId) params.set("categoryId", categoryId);
+    params.set("from", toDateKey(start));
+    params.set("to", toDateKey(end));
+    redirect(`/transactions?${params.toString()}`);
+  }
 
   const where: Prisma.TransactionWhereInput = { userId };
   if (accountId) {

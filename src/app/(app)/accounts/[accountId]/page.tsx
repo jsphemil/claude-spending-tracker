@@ -138,6 +138,10 @@ export default async function AccountDetailPage({
   const totalIn = income + transferIn;
   const totalOut = expense + transferOut;
   const leftToSpend = totalIn - totalOut;
+  // Carry Forward counts as available funds alongside this period's inflow —
+  // it's money on hand from outside the month boundary, same as income.
+  const availableFunds = carryForward + totalIn;
+  const percentSpent = availableFunds > 0 ? (totalOut / availableFunds) * 100 : null;
 
   const cashFlowData = [
     { name: "Income", value: income, color: "#22c55e" },
@@ -151,7 +155,14 @@ export default async function AccountDetailPage({
 
   return (
     <div className="max-w-md p-6">
-      <div className="flex items-center gap-3">
+      <Link
+        href="/accounts"
+        className="text-sm font-medium text-zinc-500 hover:underline"
+      >
+        ← Back to Accounts
+      </Link>
+
+      <div className="mt-4 flex items-center gap-3">
         <span
           className="flex h-12 w-12 items-center justify-center rounded-full text-2xl"
           style={{ backgroundColor: account.color + "20" }}
@@ -180,10 +191,16 @@ export default async function AccountDetailPage({
         </Link>
       </div>
 
-      <p className="mt-4 text-sm text-zinc-500">Balance as of end of {monthLabel(monthKey)}</p>
-      <p className="text-3xl font-semibold text-zinc-900">
-        {formatMoney(endingBalance, account.currency)}
-      </p>
+      <div className="mt-4">
+        <CategoryPieChart
+          data={cashFlowData}
+          currency={account.currency}
+          showDataLabels
+          centerLabel="Balance available"
+          centerValue={formatMoney(endingBalance, account.currency)}
+          centerSubtext={percentSpent !== null ? `${percentSpent.toFixed(0)}% spent` : undefined}
+        />
+      </div>
 
       {account.type === "CREDIT_CARD" && account.creditLimit && (
         <div className="mt-2 space-y-1 text-sm text-zinc-600">
@@ -218,10 +235,6 @@ export default async function AccountDetailPage({
             {formatMoney(leftToSpend, account.currency)}
           </span>
         </div>
-      </div>
-
-      <div className="mt-6">
-        <CategoryPieChart data={cashFlowData} currency={account.currency} />
       </div>
 
       <div className="mt-6 grid grid-cols-3 gap-2">
