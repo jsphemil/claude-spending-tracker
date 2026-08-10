@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { getRatesToINR } from "@/lib/services/currency";
 
 // Balance is computed from transactions, never stored — see build plan 1.2.
 // This avoids drift whenever a transaction is created/edited/deleted; every
@@ -66,11 +67,17 @@ export function applyDelta(accountId: string, deltas: Record<string, number>) {
 // same math as getAccountBalanceDeltas/applyDelta, just accumulated
 // incrementally. An account contributes nothing before its first
 // transaction (its opening-balance row), same as elsewhere.
+//
+// Each account's delta is still in that account's own currency (transfers
+// move the same raw number between both legs — this app has no concept of
+// a cross-currency transfer, so that's assumed to never mismatch); only
+// the final per-cutoff sum converts to INR, one rate lookup for every
+// currency in play, reused across every cutoff in the series.
 export async function getNetWorthSeries(userId: string, cutoffs: Date[]): Promise<number[]> {
   if (cutoffs.length === 0) return [];
 
   const [accounts, transactions] = await Promise.all([
-    prisma.account.findMany({ where: { userId }, select: { id: true } }),
+    prisma.account.findMany({ where: { userId }, select: { id: true, currency: true } }),
     prisma.transaction.findMany({
       where: { userId, date: { lte: cutoffs[cutoffs.length - 1] } },
       select: { date: true, type: true, amount: true, accountId: true, fromAccountId: true, toAccountId: true },
@@ -78,6 +85,12 @@ export async function getNetWorthSeries(userId: string, cutoffs: Date[]): Promis
     }),
   ]);
   const accountIds = accounts.map((a) => a.id);
+  const currencyByAccount = new Map(accounts.map((a) => [a.id, a.currency]));
+  const rates = await getRatesToINR(accounts.map((a) => a.currency));
+  const rateFor = (accountId: string) => {
+    const currency = currencyByAccount.get(accountId);
+    return currency === "INR" || !currency ? 1 : (rates[currency] ?? 1);
+  };
 
   const deltas: Record<string, number> = {};
   let i = 0;
@@ -95,7 +108,7 @@ export async function getNetWorthSeries(userId: string, cutoffs: Date[]): Promis
       }
       i++;
     }
-    series.push(accountIds.reduce((sum, id) => sum + (deltas[id] ?? 0), 0));
+    series.push(accountIds.reduce((sum, id) => sum + (deltas[id] ?? 0) * rateFor(id), 0));
   }
 
   return series;

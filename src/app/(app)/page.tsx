@@ -5,6 +5,8 @@ import { getVerifiedUserId } from "@/lib/supabase/server";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/constants/accounts";
 import { formatMoney } from "@/lib/services/format";
 import { applyDelta, getAccountBalanceDeltas, getNetWorthSeries } from "@/lib/services/balance";
+import { getRatesToINR } from "@/lib/services/currency";
+import { CurrencyAmount } from "@/components/shared/CurrencyAmount";
 import {
   monthLabel,
   monthParamString,
@@ -57,7 +59,7 @@ export default async function DashboardPage({
     getAccountBalanceDeltas(userId, { asOf: end }),
     prisma.transaction.findMany({
       where: { userId, type: { in: ["INCOME", "EXPENSE"] }, date: { gte: start, lte: end } },
-      select: { type: true, amount: true, categoryId: true },
+      select: { type: true, amount: true, categoryId: true, account: { select: { currency: true } } },
     }),
     prisma.transaction.groupBy({
       by: ["date"],
@@ -95,16 +97,32 @@ export default async function DashboardPage({
     value: netWorthSeries[i],
   }));
 
+  // The whole point of this page is one figure across every account
+  // (spec 5.8: "Overall balance across all accounts (in INR)") — every
+  // aggregate below converts each account's own-currency amount to INR
+  // before summing. Per-account figures (Accounts list, account pages)
+  // stay in that account's native currency; only portfolio-level sums
+  // convert. One rate lookup, reused for every conversion on this page.
+  const rates = await getRatesToINR(accounts.map((a) => a.currency));
+  const toINR = (amount: number, currency: string) =>
+    currency === "INR" ? amount : amount * (rates[currency] ?? 1);
+
   const balances = accounts.map((a) => ({
     account: a,
     balance: applyDelta(a.id, deltasAtEnd),
   }));
-  const netWorth = balances.reduce((sum, b) => sum + b.balance, 0);
-  const carryForward = accounts.reduce((sum, a) => sum + applyDelta(a.id, deltasAtStart), 0);
+  const netWorth = balances.reduce((sum, b) => sum + toINR(b.balance, b.account.currency), 0);
+  const carryForward = accounts.reduce(
+    (sum, a) => sum + toINR(applyDelta(a.id, deltasAtStart), a.currency),
+    0
+  );
   const creditCardAccounts = balances.filter((b) => b.account.type === "CREDIT_CARD");
   const creditCardDebt =
     creditCardAccounts.length > 0
-      ? creditCardAccounts.reduce((sum, b) => sum + Math.max(0, -b.balance), 0)
+      ? creditCardAccounts.reduce(
+          (sum, b) => sum + toINR(Math.max(0, -b.balance), b.account.currency),
+          0
+        )
       : null;
 
   // Composition of positive assets by liquidity, not a capacity gauge (so a
@@ -121,7 +139,7 @@ export default async function DashboardPage({
       color: bucket.color,
       value: balances
         .filter((b) => bucket.types.includes(b.account.type))
-        .reduce((sum, b) => sum + Math.max(0, b.balance), 0),
+        .reduce((sum, b) => sum + toINR(Math.max(0, b.balance), b.account.currency), 0),
     }))
     .filter((b) => b.value > 0);
 
@@ -132,10 +150,10 @@ export default async function DashboardPage({
   // those aren't symmetric for a single account.)
   const income = periodTransactions
     .filter((t) => t.type === "INCOME")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+    .reduce((sum, t) => sum + toINR(Number(t.amount), t.account?.currency ?? "INR"), 0);
   const expense = periodTransactions
     .filter((t) => t.type === "EXPENSE")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+    .reduce((sum, t) => sum + toINR(Number(t.amount), t.account?.currency ?? "INR"), 0);
 
   // A gauge, not a flow-ratio pie: the ring's total capacity is what the
   // portfolio had available this period (Carry Forward + Income, transfers
@@ -343,9 +361,12 @@ export default async function DashboardPage({
                       <p className="text-xs text-zinc-500">{ACCOUNT_TYPE_LABELS[account.type]}</p>
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-zinc-900">
-                    {formatMoney(balance, account.currency)}
-                  </p>
+                  <CurrencyAmount
+                    amount={balance}
+                    currency={account.currency}
+                    inrEquivalent={toINR(balance, account.currency)}
+                    className="text-sm font-medium text-zinc-900"
+                  />
                 </Link>
               </li>
             ))}

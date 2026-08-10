@@ -5,6 +5,8 @@ import { getVerifiedUserId } from "@/lib/supabase/server";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/constants/accounts";
 import { formatMoney } from "@/lib/services/format";
 import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
+import { getRatesToINR } from "@/lib/services/currency";
+import { CurrencyAmount } from "@/components/shared/CurrencyAmount";
 import {
   monthLabel,
   monthParamString,
@@ -58,14 +60,20 @@ export default async function AccountsPage({
     }
   }
 
+  const rates = await getRatesToINR(accounts.map((a) => a.currency));
+  const toINR = (amount: number, currency: string) =>
+    currency === "INR" ? amount : amount * (rates[currency] ?? 1);
+
   const rows = accounts.map((account) => {
     const flow = getFlow(account.id);
+    const balance = applyDelta(account.id, deltasAtEnd);
     return {
       account,
       income: flow.income,
       expense: flow.expense,
       netTransfer: flow.transferIn - flow.transferOut,
-      balance: applyDelta(account.id, deltasAtEnd),
+      balance,
+      balanceInr: toINR(balance, account.currency),
     };
   });
 
@@ -106,7 +114,7 @@ export default async function AccountsPage({
         </p>
       ) : (
         <ul className="mt-4 space-y-2">
-          {rows.map(({ account, income, expense, netTransfer, balance }) => (
+          {rows.map(({ account, income, expense, netTransfer, balance, balanceInr }) => (
             <li key={account.id}>
               <Link
                 href={`/accounts/${account.id}?month=${monthParamString(monthKey)}`}
@@ -125,9 +133,12 @@ export default async function AccountsPage({
                       <p className="text-xs text-zinc-500">{ACCOUNT_TYPE_LABELS[account.type]}</p>
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-zinc-900">
-                    {formatMoney(balance, account.currency)}
-                  </p>
+                  <CurrencyAmount
+                    amount={balance}
+                    currency={account.currency}
+                    inrEquivalent={balanceInr}
+                    className="text-sm font-medium text-zinc-900"
+                  />
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                   <div>
