@@ -230,7 +230,7 @@ The app's core promise: a user who logs transactions regularly should (a) never 
 | 4 | Spend-pace / month-end projection ("at this rate you'll spend ₹X by month-end") | 8 | 4 | **+4** |
 | 5 | Duplicate-last-transaction quick entry | 6 | 2 | **+4** |
 | 6 | Asset allocation view (% liquid / invested / debt, by account type) | 6 | 3 | **+3** |
-| 7 | Investment mark-to-market affordance (default "Market Gain/Loss" categories + hint on Investment accounts) | 5 | 2 | **+3** |
+| ~~7~~ | ~~Investment mark-to-market affordance~~ — **dropped, user doesn't want it** | — | — | — |
 | 8 | Goals (target net worth/amount by date, progress tracking) | 6 | 5 | **+1** |
 | 9 | Debt payoff projection (credit card/loan, at current payment rate) | 5 | 4 | **+1** |
 | 10 | Natural-language quick entry (Claude-powered, section 5.7's reserved FAB) | 9 | 9 | **0** |
