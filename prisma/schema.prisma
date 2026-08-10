@@ -98,6 +98,7 @@ model Category {
   icon            String
   color           String
   isSystemDefault Boolean      @default(false)
+  monthlyBudget   Decimal?     @db.Decimal(14, 2) // EXPENSE categories only; null = no budget set
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 

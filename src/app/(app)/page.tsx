@@ -41,29 +41,54 @@ export default async function DashboardPage({
   const trendMonths = Array.from({ length: 12 }, (_, i) => shiftMonth(monthKey, i - 11));
   const trendCutoffs = trendMonths.map((mk) => monthRange(mk).end);
 
-  const [accounts, deltasAtStart, deltasAtEnd, periodTransactions, dailyExpenseTotals, recentTransactions, netWorthSeries, goals] =
-    await Promise.all([
-      prisma.account.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
-      getAccountBalanceDeltas(userId, { asOf: periodStartCutoff }),
-      getAccountBalanceDeltas(userId, { asOf: end }),
-      prisma.transaction.findMany({
-        where: { userId, type: { in: ["INCOME", "EXPENSE"] }, date: { gte: start, lte: end } },
-        select: { type: true, amount: true },
-      }),
-      prisma.transaction.groupBy({
-        by: ["date"],
-        where: { userId, type: "EXPENSE", date: { gte: start, lte: end } },
-        _sum: { amount: true },
-      }),
-      prisma.transaction.findMany({
-        where: { userId, date: { lte: end } },
-        orderBy: { date: "desc" },
-        take: 5,
-        include: { account: true, category: true, fromAccount: true, toAccount: true },
-      }),
-      getNetWorthSeries(userId, trendCutoffs),
-      prisma.goal.findMany({ where: { userId }, orderBy: { createdAt: "asc" }, take: 3 }),
-    ]);
+  const [
+    accounts,
+    deltasAtStart,
+    deltasAtEnd,
+    periodTransactions,
+    dailyExpenseTotals,
+    recentTransactions,
+    netWorthSeries,
+    goals,
+    budgetedCategories,
+  ] = await Promise.all([
+    prisma.account.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
+    getAccountBalanceDeltas(userId, { asOf: periodStartCutoff }),
+    getAccountBalanceDeltas(userId, { asOf: end }),
+    prisma.transaction.findMany({
+      where: { userId, type: { in: ["INCOME", "EXPENSE"] }, date: { gte: start, lte: end } },
+      select: { type: true, amount: true, categoryId: true },
+    }),
+    prisma.transaction.groupBy({
+      by: ["date"],
+      where: { userId, type: "EXPENSE", date: { gte: start, lte: end } },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.findMany({
+      where: { userId, date: { lte: end } },
+      orderBy: { date: "desc" },
+      take: 5,
+      include: { account: true, category: true, fromAccount: true, toAccount: true },
+    }),
+    getNetWorthSeries(userId, trendCutoffs),
+    prisma.goal.findMany({ where: { userId }, orderBy: { createdAt: "asc" }, take: 3 }),
+    prisma.category.findMany({
+      where: { userId, type: "EXPENSE", monthlyBudget: { not: null } },
+      select: { id: true, name: true, icon: true, monthlyBudget: true },
+    }),
+  ]);
+
+  // Cheap check against categories with a budget set, reusing
+  // periodTransactions rather than another query — surfaces overspending
+  // right where the user already lands, not just on the Categories page.
+  const overBudgetCategories = budgetedCategories
+    .map((c) => ({
+      ...c,
+      spent: periodTransactions
+        .filter((t) => t.type === "EXPENSE" && t.categoryId === c.id)
+        .reduce((sum, t) => sum + Number(t.amount), 0),
+    }))
+    .filter((c) => c.spent > Number(c.monthlyBudget));
 
   const netWorthTrendData = trendMonths.map((mk, i) => ({
     label: monthShortLabel(mk),
@@ -153,6 +178,20 @@ export default async function DashboardPage({
           Next →
         </Link>
       </div>
+
+      {overBudgetCategories.length > 0 && (
+        <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+          {overBudgetCategories.map((c) => (
+            <p key={c.id} className="text-xs font-medium text-rose-700">
+              {c.icon} {c.name} is {formatMoney(c.spent - Number(c.monthlyBudget), "INR")} over its{" "}
+              {formatMoney(Number(c.monthlyBudget), "INR")}/mo budget
+            </p>
+          ))}
+          <Link href="/categories" className="text-xs font-medium text-rose-600 hover:underline">
+            Review budgets →
+          </Link>
+        </div>
+      )}
 
       <div className="mt-4">
         <CategoryPieChart

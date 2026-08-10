@@ -31,6 +31,7 @@ export default async function EditCategoryPage({
             type: category.type,
             color: category.color,
             icon: category.icon,
+            monthlyBudget: category.monthlyBudget ? category.monthlyBudget.toString() : "",
           }}
         />
       </div>

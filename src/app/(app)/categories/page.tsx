@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db/prisma";
 import { getVerifiedUserId } from "@/lib/supabase/server";
 import { CATEGORY_TYPES, CATEGORY_TYPE_LABELS } from "@/lib/constants/categories";
 import { DeleteCategoryButton } from "@/components/categories/DeleteCategoryButton";
+import { formatMoney } from "@/lib/services/format";
+import { monthLabel, monthRange, parseMonthParam } from "@/lib/services/calendar";
 
 export default async function CategoriesPage({
   searchParams,
@@ -16,10 +18,24 @@ export default async function CategoriesPage({
   const { type: rawType } = await searchParams;
   const type = rawType === "INCOME" ? "INCOME" : "EXPENSE";
 
-  const categories = await prisma.category.findMany({
-    where: { userId, type },
-    orderBy: { name: "asc" },
-  });
+  // Budget-vs-spend is always the real current month — this page has no
+  // month nav (keeping it that way; "am I about to overspend this
+  // category right now" is inherently a today question, not a browsable
+  // history one, unlike the account pages).
+  const currentMonthKey = parseMonthParam(undefined);
+  const { start, end } = monthRange(currentMonthKey);
+
+  const [categories, spendRows] = await Promise.all([
+    prisma.category.findMany({ where: { userId, type }, orderBy: { name: "asc" } }),
+    type === "EXPENSE"
+      ? prisma.transaction.groupBy({
+          by: ["categoryId"],
+          where: { userId, type: "EXPENSE", date: { gte: start, lte: end } },
+          _sum: { amount: true },
+        })
+      : Promise.resolve([]),
+  ]);
+  const spendByCategory = new Map(spendRows.map((r) => [r.categoryId, Number(r._sum.amount ?? 0)]));
 
   return (
     <div className="p-6">
@@ -55,31 +71,52 @@ export default async function CategoriesPage({
         </p>
       ) : (
         <ul className="mt-4 space-y-2">
-          {categories.map((category) => (
-            <li
-              key={category.id}
-              className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3"
-            >
-              <div className="flex items-center gap-3">
-                <span
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
-                  style={{ backgroundColor: category.color + "20" }}
-                >
-                  {category.icon}
-                </span>
-                <p className="text-sm font-medium text-zinc-900">{category.name}</p>
-              </div>
-              <div className="flex items-center gap-4">
-                <Link
-                  href={`/categories/${category.id}/edit`}
-                  className="text-sm font-medium text-zinc-700 hover:underline"
-                >
-                  Edit
-                </Link>
-                <DeleteCategoryButton categoryId={category.id} type={type} />
-              </div>
-            </li>
-          ))}
+          {categories.map((category) => {
+            const budget = category.monthlyBudget ? Number(category.monthlyBudget) : null;
+            const spent = spendByCategory.get(category.id) ?? 0;
+            const percent = budget ? Math.min(100, (spent / budget) * 100) : null;
+            const overBudget = budget !== null && spent > budget;
+
+            return (
+              <li key={category.id} className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
+                      style={{ backgroundColor: category.color + "20" }}
+                    >
+                      {category.icon}
+                    </span>
+                    <p className="text-sm font-medium text-zinc-900">{category.name}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Link
+                      href={`/categories/${category.id}/edit`}
+                      className="text-sm font-medium text-zinc-700 hover:underline"
+                    >
+                      Edit
+                    </Link>
+                    <DeleteCategoryButton categoryId={category.id} type={type} />
+                  </div>
+                </div>
+
+                {budget !== null && (
+                  <div className="mt-2">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200">
+                      <div
+                        className={`h-full ${overBudget ? "bg-rose-500" : "bg-blue-500"}`}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <p className={`mt-1 text-xs ${overBudget ? "font-medium text-rose-600" : "text-zinc-500"}`}>
+                      {formatMoney(spent, "INR")} of {formatMoney(budget, "INR")} this {monthLabel(currentMonthKey)}
+                      {overBudget && ` — ${formatMoney(spent - budget, "INR")} over`}
+                    </p>
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

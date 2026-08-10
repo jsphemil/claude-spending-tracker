@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   CATEGORY_ICONS,
   CATEGORY_TYPES,
@@ -16,6 +16,7 @@ type CategoryFormValues = {
   type: (typeof CATEGORY_TYPES)[number];
   color: string;
   icon: string;
+  monthlyBudget: string;
 };
 
 const emptyValues: CategoryFormValues = {
@@ -23,6 +24,7 @@ const emptyValues: CategoryFormValues = {
   type: "EXPENSE",
   color: DEFAULT_CATEGORY_COLOR,
   icon: CATEGORY_ICONS[0],
+  monthlyBudget: "",
 };
 
 export function CategoryForm({
@@ -41,6 +43,7 @@ export function CategoryForm({
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const values = { ...emptyValues, ...defaultValues };
+  const [type, setType] = useState<(typeof CATEGORY_TYPES)[number]>(values.type);
 
   return (
     <form action={formAction} className="max-w-md space-y-4">
@@ -66,6 +69,7 @@ export function CategoryForm({
           name="type"
           defaultValue={values.type}
           disabled={lockType}
+          onChange={(e) => setType(e.target.value as (typeof CATEGORY_TYPES)[number])}
           className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none disabled:bg-zinc-100"
         >
           {CATEGORY_TYPES.map((t) => (
@@ -76,6 +80,24 @@ export function CategoryForm({
         </select>
         {lockType && <input type="hidden" name="type" value={values.type} />}
       </div>
+
+      {type === "EXPENSE" && (
+        <div className="space-y-1">
+          <label htmlFor="monthlyBudget" className="text-sm font-medium text-zinc-700">
+            Monthly budget (optional)
+          </label>
+          <input
+            id="monthlyBudget"
+            name="monthlyBudget"
+            type="number"
+            step="0.01"
+            min="0.01"
+            placeholder="e.g. 5000"
+            defaultValue={values.monthlyBudget}
+            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
