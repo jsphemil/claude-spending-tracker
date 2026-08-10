@@ -58,3 +58,45 @@ export async function getAccountBalanceDeltas(
 export function applyDelta(accountId: string, deltas: Record<string, number>) {
   return deltas[accountId] ?? 0;
 }
+
+// Net worth as of each cutoff (ascending order) — one query instead of one
+// per cutoff (getAccountBalanceDeltas repeated N times would be 3N queries
+// for an N-month trend). Transactions are fetched once, sorted ascending,
+// and folded into a running per-account delta as each cutoff is passed —
+// same math as getAccountBalanceDeltas/applyDelta, just accumulated
+// incrementally. An account contributes nothing before its first
+// transaction (its opening-balance row), same as elsewhere.
+export async function getNetWorthSeries(userId: string, cutoffs: Date[]): Promise<number[]> {
+  if (cutoffs.length === 0) return [];
+
+  const [accounts, transactions] = await Promise.all([
+    prisma.account.findMany({ where: { userId }, select: { id: true } }),
+    prisma.transaction.findMany({
+      where: { userId, date: { lte: cutoffs[cutoffs.length - 1] } },
+      select: { date: true, type: true, amount: true, accountId: true, fromAccountId: true, toAccountId: true },
+      orderBy: { date: "asc" },
+    }),
+  ]);
+  const accountIds = accounts.map((a) => a.id);
+
+  const deltas: Record<string, number> = {};
+  let i = 0;
+  const series: number[] = [];
+
+  for (const cutoff of cutoffs) {
+    while (i < transactions.length && transactions[i].date <= cutoff) {
+      const t = transactions[i];
+      const amount = Number(t.amount);
+      if (t.type === "TRANSFER") {
+        if (t.fromAccountId) deltas[t.fromAccountId] = (deltas[t.fromAccountId] ?? 0) - amount;
+        if (t.toAccountId) deltas[t.toAccountId] = (deltas[t.toAccountId] ?? 0) + amount;
+      } else if (t.accountId) {
+        deltas[t.accountId] = (deltas[t.accountId] ?? 0) + (t.type === "INCOME" ? amount : -amount);
+      }
+      i++;
+    }
+    series.push(accountIds.reduce((sum, id) => sum + (deltas[id] ?? 0), 0));
+  }
+
+  return series;
+}

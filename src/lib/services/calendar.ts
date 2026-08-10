@@ -28,6 +28,17 @@ export function monthLabel({ year, monthIndex }: MonthKey) {
   });
 }
 
+// "Aug '26" — compact enough to fit 12 of these across a trend chart's
+// x-axis; includes the year since a 12-month window commonly crosses one.
+export function monthShortLabel({ year, monthIndex }: MonthKey) {
+  const label = new Date(Date.UTC(year, monthIndex, 1)).toLocaleDateString("en-US", {
+    month: "short",
+    year: "2-digit",
+    timeZone: "UTC",
+  });
+  return label.replace(" ", " '");
+}
+
 export function shiftMonth({ year, monthIndex }: MonthKey, delta: number): MonthKey {
   const d = new Date(Date.UTC(year, monthIndex + delta, 1));
   return { year: d.getUTCFullYear(), monthIndex: d.getUTCMonth() };

@@ -8,3 +8,14 @@ export function formatMoney(amount: number, currency: string) {
     maximumFractionDigits: 2,
   }).format(amount);
 }
+
+// Abbreviated form (₹12L, ₹3.2Cr) for chart axis ticks, where full
+// precision would crowd out the labels.
+export function formatMoneyCompact(amount: number, currency: string) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency,
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(amount);
+}

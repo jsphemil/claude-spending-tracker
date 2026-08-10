@@ -4,17 +4,19 @@ import { prisma } from "@/lib/db/prisma";
 import { getVerifiedUserId } from "@/lib/supabase/server";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/constants/accounts";
 import { formatMoney } from "@/lib/services/format";
-import { applyDelta, getAccountBalanceDeltas } from "@/lib/services/balance";
+import { applyDelta, getAccountBalanceDeltas, getNetWorthSeries } from "@/lib/services/balance";
 import {
   monthLabel,
   monthParamString,
   monthRange,
+  monthShortLabel,
   parseMonthParam,
   previousMonthEnd,
   shiftMonth,
   toDateKey,
 } from "@/lib/services/calendar";
 import { CategoryPieChart } from "@/components/charts/CategoryPieChart";
+import { NetWorthTrendChart } from "@/components/charts/NetWorthTrendChart";
 import { CalendarMonthGrid } from "@/components/calendar/CalendarMonthGrid";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
 import { ensureMaterialized } from "@/lib/services/recurrence";
@@ -34,7 +36,12 @@ export default async function DashboardPage({
 
   await ensureMaterialized(userId, { through: end });
 
-  const [accounts, deltasAtStart, deltasAtEnd, periodTransactions, dailyExpenseTotals, recentTransactions] =
+  // Last 12 months ending at whichever month is being viewed, so paging
+  // the Dashboard backward also shifts the trend window to match.
+  const trendMonths = Array.from({ length: 12 }, (_, i) => shiftMonth(monthKey, i - 11));
+  const trendCutoffs = trendMonths.map((mk) => monthRange(mk).end);
+
+  const [accounts, deltasAtStart, deltasAtEnd, periodTransactions, dailyExpenseTotals, recentTransactions, netWorthSeries] =
     await Promise.all([
       prisma.account.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
       getAccountBalanceDeltas(userId, { asOf: periodStartCutoff }),
@@ -54,7 +61,13 @@ export default async function DashboardPage({
         take: 5,
         include: { account: true, category: true, fromAccount: true, toAccount: true },
       }),
+      getNetWorthSeries(userId, trendCutoffs),
     ]);
+
+  const netWorthTrendData = trendMonths.map((mk, i) => ({
+    label: monthShortLabel(mk),
+    value: netWorthSeries[i],
+  }));
 
   const balances = accounts.map((a) => ({
     account: a,
@@ -157,6 +170,13 @@ export default async function DashboardPage({
             <span className="font-medium text-rose-700">{formatMoney(creditCardDebt, "INR")}</span>
           </div>
         )}
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-sm font-semibold text-zinc-900">Net worth trend</h2>
+        <div className="mt-2 rounded-lg border border-zinc-200 bg-white p-3">
+          <NetWorthTrendChart data={netWorthTrendData} currency="INR" />
+        </div>
       </div>
 
       <div className="mt-8">
