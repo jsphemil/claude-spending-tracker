@@ -217,4 +217,27 @@ _Updated after every commit so it's always clear what's live and what's left. Br
 
 ---
 
+## 9. Improvement Roadmap — Value/Effort Prioritization
+
+The app's core promise: a user who logs transactions regularly should (a) never overspend, (b) always know their net worth short- and long-term, (c) always know their fixed commitments. Each idea below scored 1–10 on **Value** (impact toward that promise, including how much it lowers the friction to keep logging — the whole thing is worthless if people stop entering transactions) and **Effort** (engineering cost against the current codebase, schema, and infra). **Priority = Value − Effort**; ties broken by higher Value. Built top to bottom; as each ships, it moves into section 8's Done list and gets struck through here.
+
+| # | Feature | Value | Effort | Priority |
+|---|---|---|---|---|
+| 1 | Daily "safe to spend" number (Left to Spend ÷ days remaining in month) | 8 | 2 | **+6** |
+| 2 | Net worth trend chart (line graph over last 12/24 months) | 9 | 4 | **+5** |
+| 3 | Fixed Commitments & Subscriptions rollup (total ₹/month from active recurring rules) | 8 | 3 | **+5** |
+| 4 | Spend-pace / month-end projection ("at this rate you'll spend ₹X by month-end") | 8 | 4 | **+4** |
+| 5 | Duplicate-last-transaction quick entry | 6 | 2 | **+4** |
+| 6 | Asset allocation view (% liquid / invested / debt, by account type) | 6 | 3 | **+3** |
+| 7 | Investment mark-to-market affordance (default "Market Gain/Loss" categories + hint on Investment accounts) | 5 | 2 | **+3** |
+| 8 | Goals (target net worth/amount by date, progress tracking) | 6 | 5 | **+1** |
+| 9 | Debt payoff projection (credit card/loan, at current payment rate) | 5 | 4 | **+1** |
+| 10 | Natural-language quick entry (Claude-powered, section 5.7's reserved FAB) | 9 | 9 | **0** |
+| 11 | Category-level budgets (extends Phase 9 beyond account-level) | 7 | 7 | **0** |
+| 12 | Threshold alerts / notifications (budget crossed, unusual transaction) | 6 | 8 | **−2** |
+
+Note on #10: it scores low on pure ROI despite being the single biggest differentiator from manual-entry competitors, purely because the effort is genuinely large (new LLM integration subsystem, parsing/disambiguation UX, API costs) — not because it isn't valuable. Worth revisiting once the cheaper wins below it are shipped.
+
+---
+
 _Once this file reflects what you want, the next step is setting up Claude Code and starting the build — we'll walk through that together, one step at a time._
