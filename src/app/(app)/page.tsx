@@ -27,12 +27,12 @@ export default async function DashboardPage({
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
 
-  await ensureMaterialized(userId);
-
   const { month } = await searchParams;
   const monthKey = parseMonthParam(month);
   const { start, end } = monthRange(monthKey);
   const periodStartCutoff = previousMonthEnd(monthKey);
+
+  await ensureMaterialized(userId, { through: end });
 
   const [accounts, deltasAtStart, deltasAtEnd, periodTransactions, dailyExpenseTotals, recentTransactions] =
     await Promise.all([

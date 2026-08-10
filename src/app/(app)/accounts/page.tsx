@@ -24,11 +24,11 @@ export default async function AccountsPage({
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
 
-  await ensureMaterialized(userId);
-
   const { month } = await searchParams;
   const monthKey = parseMonthParam(month);
   const { start, end } = monthRange(monthKey);
+
+  await ensureMaterialized(userId, { through: end });
 
   const [accounts, deltasAtEnd, periodTransactions] = await Promise.all([
     prisma.account.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),

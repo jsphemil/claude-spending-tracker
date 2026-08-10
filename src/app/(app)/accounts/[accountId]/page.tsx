@@ -29,13 +29,13 @@ export default async function AccountDetailPage({
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
 
-  await ensureMaterialized(userId);
-
   const { accountId } = await params;
   const { month } = await searchParams;
   const monthKey = parseMonthParam(month);
   const { start, end } = monthRange(monthKey);
   const periodStartCutoff = previousMonthEnd(monthKey);
+
+  await ensureMaterialized(userId, { through: end });
 
   const [account, deltasAtStart, deltasAtEnd, monthTransactions] = await Promise.all([
     prisma.account.findFirst({ where: { id: accountId, userId } }),
@@ -125,11 +125,17 @@ export default async function AccountDetailPage({
 
   const totalIn = income + transferIn;
   const totalOut = expense + transferOut;
-  const leftToSpend = totalIn - totalOut;
   // Carry Forward counts as available funds alongside this period's inflow —
   // it's money on hand from outside the month boundary, same as income.
   const availableFunds = carryForward + totalIn;
   const percentSpent = availableFunds > 0 ? (totalOut / availableFunds) * 100 : null;
+  // "Left to Spend" must read the same as the pie's center figure — the
+  // account's actual running balance (carry forward included), not just
+  // this period's in/out — otherwise the two disagree the moment there's
+  // any carry forward. For a credit card that's available credit against
+  // the limit; for everything else it's the ending balance.
+  const leftToSpend =
+    account.type === "CREDIT_CARD" && account.creditLimit != null ? availableCredit! : endingBalance;
 
   const cashFlowData = [
     { name: "Income", value: income, color: "#22c55e" },

@@ -40,6 +40,17 @@ function horizonDate(): Date {
   return new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + HORIZON_MONTHS, today.getUTCDate()));
 }
 
+// The rolling today+3-month horizon is only a baseline — a page browsing
+// further out (e.g. the Dashboard/Account month nav pushed past it) must be
+// able to pull materialization out further too, or an indefinite recurring
+// rule would just stop appearing past that point despite having no end
+// date. `through` extends the horizon to cover whichever date the caller
+// actually needs, never shrinks it.
+function effectiveHorizon(through?: Date): Date {
+  const base = horizonDate();
+  return through && through > base ? through : base;
+}
+
 function buildOccurrenceData(rule: RecurringRule, occurrenceDate: Date) {
   return {
     userId: rule.userId,
@@ -61,8 +72,7 @@ function buildOccurrenceData(rule: RecurringRule, occurrenceDate: Date) {
 // exception, and createMany's skipDuplicates (backed by the
 // (recurringRuleId, occurrenceDate) unique index) protects against
 // re-materializing a date twice even under concurrent calls.
-async function materializeRule(rule: RecurringRule): Promise<void> {
-  const horizon = horizonDate();
+async function materializeRule(rule: RecurringRule, horizon: Date): Promise<void> {
   const effectiveEnd = rule.endDate && rule.endDate < horizon ? rule.endDate : horizon;
   if (effectiveEnd < rule.startDate) return;
 
@@ -117,15 +127,18 @@ async function materializeRule(rule: RecurringRule): Promise<void> {
 }
 
 // Primary materialization mechanism — call at the top of any page that reads
-// transaction data. The daily cron (/api/cron/materialize-recurring) is only
+// transaction data, passing `through` when that page is viewing a specific
+// date range (e.g. the month currently being browsed) so an indefinite rule
+// keeps materializing as far as the user actually navigates, not just
+// today+3 months. The daily cron (/api/cron/materialize-recurring) is only
 // a backstop for when nobody visits the app.
-export async function ensureMaterialized(userId: string): Promise<void> {
-  const horizon = horizonDate();
+export async function ensureMaterialized(userId: string, opts?: { through?: Date }): Promise<void> {
+  const horizon = effectiveHorizon(opts?.through);
   const rules = await prisma.recurringRule.findMany({
     where: { userId, isActive: true, startDate: { lte: horizon } },
   });
   for (const rule of rules) {
-    await materializeRule(rule);
+    await materializeRule(rule, horizon);
   }
 }
 
@@ -187,16 +200,18 @@ export async function createRecurringSeries(
     });
   }
 
-  await materializeRule(rule);
+  await materializeRule(rule, horizonDate());
 
   return redirectAccountId(values);
 }
 
 type RecurringTransactionRef = { id: string; recurringRuleId: string; occurrenceDate: Date };
 
-// "Just this one" edit: the date field is locked to occurrenceDate in the UI
-// (see TransactionForm), so there's no divergence to reconcile here — only
-// amount/account/category/description can change per occurrence.
+// "Just this one" edit: `date` can diverge from `occurrenceDate` (the
+// schedule's anchor for this slot never changes — see the Transaction model
+// comment) — e.g. a salary that's normally on the 1st but landed on the 3rd
+// this month. occurrenceDate stays put so the series and its exception
+// record still line up.
 export async function editSingleOccurrence(
   existing: RecurringTransactionRef,
   values: TransactionInput,
@@ -208,6 +223,7 @@ export async function editSingleOccurrence(
       data: {
         type: values.type,
         amount: values.amount,
+        date: values.date,
         description: values.description,
         ...accountFields(values),
         isRecurringException: true,
@@ -239,9 +255,11 @@ export async function editSingleOccurrence(
 // occurrence, deletes this and any later materialized rows under it
 // (including any of their own individual "just this one" overrides — an
 // explicit "change this and everything after" supersedes those), and opens
-// a new rule from this occurrence with the edited values. Schedule
-// (interval/end date) is carried over unchanged from the old rule — v1 does
-// not support changing the recurrence cadence itself via edit.
+// a new rule anchored on the edited date with the edited values — so moving
+// the date here reschedules this and every future occurrence (e.g. a salary
+// date shifting from the 1st to the 5th going forward). Interval/end date
+// are carried over unchanged from the old rule — v1 does not support
+// changing the recurrence cadence itself via edit.
 export async function editFutureOccurrences(
   userId: string,
   existing: RecurringTransactionRef,
@@ -274,7 +292,7 @@ export async function editFutureOccurrences(
         ...accountFields(values),
         intervalCount: oldRule.intervalCount,
         intervalUnit: oldRule.intervalUnit,
-        startDate: splitDate,
+        startDate: values.date,
         endDate: oldRule.endDate,
         isActive: true,
         supersedesRuleId: oldRule.id,
@@ -291,7 +309,7 @@ export async function editFutureOccurrences(
     return created;
   });
 
-  await materializeRule(newRule);
+  await materializeRule(newRule, horizonDate());
 
   return redirectAccountId(values);
 }

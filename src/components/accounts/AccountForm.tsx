@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ACCOUNT_ICONS,
   ACCOUNT_TYPES,
@@ -46,6 +47,7 @@ export function AccountForm({
   defaultValues?: Partial<AccountFormValues>;
   submitLabel: string;
 }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(action, initialState);
   const values = { ...emptyValues, ...defaultValues };
   const [type, setType] = useState<(typeof ACCOUNT_TYPES)[number]>(values.type);
@@ -185,13 +187,23 @@ export function AccountForm({
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
-      >
-        {pending ? "Saving…" : submitLabel}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+        >
+          {pending ? "Saving…" : submitLabel}
+        </button>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          disabled={pending}
+          className="rounded-md px-4 py-2 text-sm font-medium text-zinc-500 hover:underline disabled:opacity-50"
+        >
+          Cancel
+        </button>
+      </div>
     </form>
   );
 }

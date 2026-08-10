@@ -21,11 +21,11 @@ export default async function CalendarPage({
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
 
-  await ensureMaterialized(userId);
-
   const { month } = await searchParams;
   const monthKey = parseMonthParam(month);
   const { start, end } = monthRange(monthKey);
+
+  await ensureMaterialized(userId, { through: end });
 
   const totals = await prisma.transaction.groupBy({
     by: ["date"],

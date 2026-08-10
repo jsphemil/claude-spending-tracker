@@ -132,26 +132,14 @@ export function TransactionForm({
           <label htmlFor="date" className="text-sm font-medium text-zinc-700">
             Date
           </label>
-          {isRecurringEdit ? (
-            <>
-              <input
-                type="text"
-                disabled
-                value={values.date}
-                className="w-full rounded-md border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-500"
-              />
-              <input type="hidden" name="date" value={values.date} />
-            </>
-          ) : (
-            <input
-              id="date"
-              name="date"
-              type="date"
-              required
-              defaultValue={values.date}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
-            />
-          )}
+          <input
+            id="date"
+            name="date"
+            type="date"
+            required
+            defaultValue={values.date}
+            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+          />
         </div>
       </div>
 

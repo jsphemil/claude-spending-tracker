@@ -24,8 +24,6 @@ export default async function TransactionsPage({
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
 
-  await ensureMaterialized(userId);
-
   const { accountId, categoryId, from, to, all } = await searchParams;
 
   // Default to the current month so a fresh visit doesn't dump the entire
@@ -41,6 +39,12 @@ export default async function TransactionsPage({
     params.set("to", toDateKey(end));
     redirect(`/transactions?${params.toString()}`);
   }
+
+  // A browsed "to" filter needs materialization extended out to cover it,
+  // same as any other month-scoped page — otherwise an indefinite recurring
+  // rule stops appearing past today+3 months even when explicitly filtered
+  // further out.
+  await ensureMaterialized(userId, { through: to ? new Date(to) : undefined });
 
   const where: Prisma.TransactionWhereInput = { userId };
   if (accountId) {
