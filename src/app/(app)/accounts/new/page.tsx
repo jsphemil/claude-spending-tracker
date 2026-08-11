@@ -11,9 +11,9 @@ export default async function NewAccountPage() {
   const profile = await prisma.profile.findUniqueOrThrow({ where: { id: userId } });
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-semibold text-fg">New Account</h1>
-      <div className="mt-6">
+    <div className="mx-auto w-full max-w-2xl p-6 lg:p-10">
+      <h1 className="text-xl font-semibold tracking-tight text-fg">New Account</h1>
+      <div className="mt-6 rounded-2xl border border-border bg-surface p-5 shadow-sm">
         <AccountForm
           action={createAccount}
           submitLabel="Create account"

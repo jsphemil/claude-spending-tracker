@@ -39,37 +39,41 @@ export default async function TagSummaryPage({
   const net = income - expense;
 
   return (
-    <div className="p-6">
+    <div className="mx-auto w-full max-w-[1400px] p-6 lg:p-10">
       <Link href="/transactions" className="text-sm font-medium text-fg-muted hover:underline">
         ← Back to Transactions
       </Link>
-      <h1 className="mt-4 text-xl font-semibold text-fg">🏷️ {tag.name}</h1>
+      <h1 className="mb-6 mt-4 text-xl font-semibold tracking-tight text-fg">🏷️ {tag.name}</h1>
 
-      <div className="mt-6 grid grid-cols-3 gap-4 rounded-lg border border-border bg-surface p-4">
+      <div className="mb-4 grid grid-cols-3 gap-4 rounded-2xl border border-border bg-surface p-5 shadow-sm">
         <div>
           <p className="text-xs text-fg-muted">Income</p>
-          <p className="text-lg font-semibold text-success">{formatMoney(income, "INR")}</p>
+          <p className="font-data mt-1 text-lg font-semibold tabular-nums text-success">
+            {formatMoney(income, "INR")}
+          </p>
         </div>
         <div>
           <p className="text-xs text-fg-muted">Expense</p>
-          <p className="text-lg font-semibold text-danger">{formatMoney(expense, "INR")}</p>
+          <p className="font-data mt-1 text-lg font-semibold tabular-nums text-danger">
+            {formatMoney(expense, "INR")}
+          </p>
         </div>
         <div>
           <p className="text-xs text-fg-muted">Net</p>
-          <p className={`text-lg font-semibold ${net >= 0 ? "text-success" : "text-danger"}`}>
+          <p className={`font-data mt-1 text-lg font-semibold tabular-nums ${net >= 0 ? "text-success" : "text-danger"}`}>
             {formatMoney(net, "INR")}
           </p>
         </div>
       </div>
 
       {transactions.length === 0 ? (
-        <p className="mt-6 text-sm text-fg-muted">No transactions carry this tag.</p>
+        <p className="text-sm text-fg-muted">No transactions carry this tag.</p>
       ) : (
-        <ul className="mt-4 space-y-2">
+        <ul className="rounded-2xl border border-border bg-surface p-2 shadow-sm">
           {transactions.map((t) => (
             <li
               key={t.id}
-              className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3"
+              className="flex items-center justify-between border-t border-border px-3 py-3 first:border-t-0"
             >
               <div className="flex items-center gap-3">
                 <span

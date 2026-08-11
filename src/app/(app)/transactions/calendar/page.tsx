@@ -42,31 +42,34 @@ export default async function CalendarPage({
   const nextMonth = monthParamString(shiftMonth(monthKey, 1));
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-fg">Calendar</h1>
-        <Link href="/transactions" className="text-sm font-medium text-fg-muted hover:underline">
-          List view
-        </Link>
+    <div className="mx-auto w-full max-w-[1400px] p-6 lg:p-10">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold tracking-tight text-fg">Calendar</h1>
+        <div className="flex items-center gap-3">
+          <Link href="/transactions" className="text-sm font-medium text-fg-muted hover:underline">
+            List view
+          </Link>
+          <div className="flex items-center gap-0.5 rounded-full border border-border bg-surface p-1">
+            <Link
+              href={`/transactions/calendar?month=${prevMonth}`}
+              aria-label="Previous month"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg"
+            >
+              ‹
+            </Link>
+            <span className="px-2.5 text-[13px] font-medium text-fg">{monthLabel(monthKey)}</span>
+            <Link
+              href={`/transactions/calendar?month=${nextMonth}`}
+              aria-label="Next month"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg"
+            >
+              ›
+            </Link>
+          </div>
+        </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between">
-        <Link
-          href={`/transactions/calendar?month=${prevMonth}`}
-          className="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:bg-surface-2"
-        >
-          ← Prev
-        </Link>
-        <p className="text-sm font-medium text-fg">{monthLabel(monthKey)}</p>
-        <Link
-          href={`/transactions/calendar?month=${nextMonth}`}
-          className="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:bg-surface-2"
-        >
-          Next →
-        </Link>
-      </div>
-
-      <div className="mt-4">
+      <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
         <CalendarMonthGrid monthKey={monthKey} totalsByDate={totalsByDate} />
       </div>
     </div>

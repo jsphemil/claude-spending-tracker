@@ -91,9 +91,9 @@ export default async function TransactionsPage({
   const currency = filteredAccount?.currency ?? "INR";
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-fg">Transactions</h1>
+    <div className="mx-auto w-full max-w-[1400px] p-6 lg:p-10">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold tracking-tight text-fg">Transactions</h1>
         <div className="flex items-center gap-3">
           <Link
             href="/transactions/calendar"
@@ -103,30 +103,29 @@ export default async function TransactionsPage({
           </Link>
           <Link
             href="/transactions/new"
-            className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong"
+            className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong"
           >
             + New Transaction
           </Link>
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
         <TransactionFilters accounts={accounts} categories={categories} />
-      </div>
 
-      <div className="mt-4">
-        <SummaryBand income={income} expense={expense} currency={currency} />
-      </div>
+        <div className="mt-4">
+          <SummaryBand income={income} expense={expense} currency={currency} />
+        </div>
 
-      {transactions.length === 0 ? (
-        <p className="mt-6 text-sm text-fg-muted">No transactions match this filter.</p>
-      ) : (
-        <ul className="mt-4 space-y-2">
-          {transactions.map((t) => (
-            <li
-              key={t.id}
-              className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3"
-            >
+        {transactions.length === 0 ? (
+          <p className="mt-6 text-sm text-fg-muted">No transactions match this filter.</p>
+        ) : (
+          <ul className="mt-4">
+            {transactions.map((t) => (
+              <li
+                key={t.id}
+                className="flex items-center justify-between border-t border-border py-3 first:border-t-0"
+              >
               <div className="flex items-center gap-3">
                 <span
                   className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
@@ -169,55 +168,56 @@ export default async function TransactionsPage({
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <p
-                  className={`text-sm font-medium ${
-                    t.type === "INCOME"
-                      ? "text-success"
-                      : t.type === "EXPENSE"
-                        ? "text-danger"
-                        : "text-fg"
-                  }`}
-                >
-                  {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}
-                  {formatMoney(
-                    Number(t.amount),
-                    t.type === "TRANSFER" ? "INR" : (t.account?.currency ?? "INR")
-                  )}
-                </p>
-                {t.isOpeningBalance ? (
-                  <Link
-                    href={`/accounts/${t.accountId}/edit`}
-                    className="text-sm font-medium text-fg hover:underline"
+                <div className="flex items-center gap-4">
+                  <p
+                    className={`font-data text-sm font-medium tabular-nums ${
+                      t.type === "INCOME"
+                        ? "text-success"
+                        : t.type === "EXPENSE"
+                          ? "text-danger"
+                          : "text-fg"
+                    }`}
                   >
-                    Edit account
-                  </Link>
-                ) : (
-                  <>
+                    {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}
+                    {formatMoney(
+                      Number(t.amount),
+                      t.type === "TRANSFER" ? "INR" : (t.account?.currency ?? "INR")
+                    )}
+                  </p>
+                  {t.isOpeningBalance ? (
                     <Link
-                      href={`/transactions/new?duplicateId=${t.id}`}
-                      className="text-sm font-medium text-fg-muted hover:underline"
-                    >
-                      Duplicate
-                    </Link>
-                    <Link
-                      href={`/transactions/${t.id}/edit`}
+                      href={`/accounts/${t.accountId}/edit`}
                       className="text-sm font-medium text-fg hover:underline"
                     >
-                      Edit
+                      Edit account
                     </Link>
-                    <DeleteTransactionButton
-                      transactionId={t.id}
-                      redirectTo="/transactions"
-                      isRecurring={!!t.recurringRuleId}
-                    />
-                  </>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+                  ) : (
+                    <>
+                      <Link
+                        href={`/transactions/new?duplicateId=${t.id}`}
+                        className="text-sm font-medium text-fg-muted hover:underline"
+                      >
+                        Duplicate
+                      </Link>
+                      <Link
+                        href={`/transactions/${t.id}/edit`}
+                        className="text-sm font-medium text-fg hover:underline"
+                      >
+                        Edit
+                      </Link>
+                      <DeleteTransactionButton
+                        transactionId={t.id}
+                        redirectTo="/transactions"
+                        isRecurring={!!t.recurringRuleId}
+                      />
+                    </>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

@@ -241,295 +241,319 @@ export default async function AccountDetailPage({
   const prevMonth = monthParamString(shiftMonth(monthKey, -1));
   const nextMonth = monthParamString(shiftMonth(monthKey, 1));
 
+  const card = "rounded-2xl border border-border bg-surface p-5 shadow-sm";
+  const cardHead = "mb-4 flex items-center justify-between";
+  const cardTitle = "text-sm font-semibold text-fg";
+  const link = "text-[12.5px] font-medium text-accent hover:underline";
+
+  const breakdownSections = [
+    { title: "Income by category", buckets: sortedBuckets(incomeByCategory), color: "text-success" },
+    { title: "Expense by category", buckets: sortedBuckets(expenseByCategory), color: "text-danger" },
+    { title: "Transfers in by account", buckets: sortedBuckets(transferInByAccount), color: "text-accent" },
+    { title: "Transfers out by account", buckets: sortedBuckets(transferOutByAccount), color: "text-danger" },
+  ].filter((section) => section.buckets.length > 0);
+
   return (
-    <div className="max-w-md p-6">
-      <Link
-        href="/accounts"
-        className="text-sm font-medium text-fg-muted hover:underline"
-      >
+    <div className="mx-auto w-full max-w-[1400px] p-6 lg:p-10">
+      <Link href="/accounts" className="text-sm font-medium text-fg-muted hover:underline">
         ← Back to Accounts
       </Link>
 
-      <div className="mt-4 flex items-center gap-3">
-        <span
-          className="flex h-12 w-12 items-center justify-center rounded-full text-2xl"
-          style={{ backgroundColor: account.color + "20" }}
-        >
-          {account.icon}
-        </span>
-        <div>
-          <h1 className="text-xl font-semibold text-fg">{account.name}</h1>
-          <p className="text-sm text-fg-muted">{ACCOUNT_TYPE_LABELS[account.type]}</p>
-        </div>
-      </div>
-
-      <div className="mt-8 flex items-center justify-between">
-        <Link
-          href={`/accounts/${account.id}?month=${prevMonth}`}
-          className="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:bg-surface-2"
-        >
-          ← Prev
-        </Link>
-        <p className="text-sm font-medium text-fg">{monthLabel(monthKey)}</p>
-        <Link
-          href={`/accounts/${account.id}?month=${nextMonth}`}
-          className="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:bg-surface-2"
-        >
-          Next →
-        </Link>
-      </div>
-
-      <div className="mt-4">
-        <CategoryPieChart
-          data={pieData}
-          currency={account.currency}
-          showDataLabels
-          centerLabel={pieCenterLabel}
-          centerValue={pieCenterValue}
-          centerSubtext={pieCenterSubtext}
-        />
-        {!isCreditGauge && endingBalance < 0 && (
-          <p className="mt-1 text-center text-xs font-medium text-danger">
-            Overdrawn by {formatMoney(-endingBalance, account.currency)}
-          </p>
-        )}
-      </div>
-
-      {account.type === "CREDIT_CARD" && account.creditLimit && (
-        <div className="mt-2 space-y-1 text-sm text-fg-muted">
-          <p>Credit limit: {formatMoney(Number(account.creditLimit), account.currency)}</p>
-          <p>Available credit: {formatMoney(availableCredit!, account.currency)}</p>
-          {owed > Number(account.creditLimit) && (
-            <p className="text-xs font-medium text-danger">
-              Over limit by {formatMoney(owed - Number(account.creditLimit), account.currency)}
-            </p>
-          )}
-        </div>
-      )}
-
-      {debtPayoffProjection && (
-        <p className="mt-2 text-xs text-fg-muted">
-          {debtPayoffProjection.projectedDate
-            ? `At your trailing 6-month pace (${formatMoney(debtPayoffProjection.monthlyReduction, account.currency)}/mo), projected debt-free around ${debtPayoffProjection.projectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}.`
-            : "Not currently trending toward payoff — balance isn't shrinking over the trailing 6 months."}
-        </p>
-      )}
-
-      {effectiveSettings.budgetModeEnabled && account.monthlyBudget && (
-        <div className="mt-4 rounded-lg border border-border bg-surface p-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-medium text-fg">Budget Mode</span>
-            <span className={totalOut > Number(account.monthlyBudget) ? "font-medium text-danger" : "text-fg-muted"}>
-              {formatMoney(totalOut, account.currency)} of {formatMoney(Number(account.monthlyBudget), account.currency)}
-            </span>
-          </div>
-          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
-            <div
-              className={`h-full ${totalOut > Number(account.monthlyBudget) ? "bg-danger" : "bg-accent"}`}
-              style={{ width: `${Math.min(100, (totalOut / Number(account.monthlyBudget)) * 100)}%` }}
-            />
-          </div>
-          {totalOut > Number(account.monthlyBudget) && (
-            <p className="mt-1 text-xs font-medium text-danger">
-              {formatMoney(totalOut - Number(account.monthlyBudget), account.currency)} over this account&rsquo;s
-              monthly budget
-            </p>
-          )}
-        </div>
-      )}
-
-      <div className="mt-6 divide-y divide-border rounded-lg border border-border bg-surface">
-        <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-fg-muted">Carry Forward</span>
-          <span className="font-medium text-fg">{formatMoney(carryForward, account.currency)}</span>
-        </div>
-        <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-fg-muted">Total In</span>
-          <span className="font-medium text-success">{formatMoney(totalIn, account.currency)}</span>
-        </div>
-        <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-fg-muted">Total Out</span>
-          <span className="font-medium text-danger">{formatMoney(totalOut, account.currency)}</span>
-        </div>
-        <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-fg-muted">Left to Spend</span>
-          <span className={`font-medium ${leftToSpend >= 0 ? "text-success" : "text-danger"}`}>
-            {formatMoney(leftToSpend, account.currency)}
-          </span>
-        </div>
-        {safeToSpendPerDay !== null && (
-          <div className="flex items-center justify-between px-4 py-3 text-sm">
-            <span className="text-fg-muted">Safe to spend/day ({daysRemaining} days left)</span>
-            <span className="font-medium text-success">
-              {formatMoney(safeToSpendPerDay, account.currency)}
-            </span>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-6 grid grid-cols-3 gap-2">
-        <Link
-          href={`/transactions/new?type=INCOME&accountId=${account.id}`}
-          className="rounded-md border border-border px-3 py-2 text-center text-sm font-medium text-fg hover:bg-surface-2"
-        >
-          Income
-        </Link>
-        <Link
-          href={`/transactions/new?type=EXPENSE&accountId=${account.id}`}
-          className="rounded-md border border-border px-3 py-2 text-center text-sm font-medium text-fg hover:bg-surface-2"
-        >
-          Expense
-        </Link>
-        <Link
-          href={`/transactions/new?type=TRANSFER&accountId=${account.id}`}
-          className="rounded-md border border-border px-3 py-2 text-center text-sm font-medium text-fg hover:bg-surface-2"
-        >
-          Transfer
-        </Link>
-      </div>
-
-      <div className="mt-8 flex gap-2">
-        <Link
-          href={`/accounts/${account.id}/edit`}
-          className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg font-medium text-fg hover:bg-surface-2"
-        >
-          Edit
-        </Link>
-        <DeleteAccountButton accountId={account.id} />
-      </div>
-
-      <div className="mt-10">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-fg">Breakdown</h2>
-          <Link
-            href={`/transactions?accountId=${account.id}`}
-            className="text-sm font-medium text-fg-muted hover:underline"
+      <div className="mb-6 mt-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span
+            className="flex h-12 w-12 items-center justify-center rounded-xl text-2xl"
+            style={{ backgroundColor: account.color + "20" }}
           >
-            Full history
-          </Link>
+            {account.icon}
+          </span>
+          <div>
+            <h1 className="text-xl font-semibold text-fg">{account.name}</h1>
+            <p className="text-sm text-fg-muted">{ACCOUNT_TYPE_LABELS[account.type]}</p>
+          </div>
         </div>
-
-        {[
-          { title: "Income by category", buckets: sortedBuckets(incomeByCategory), color: "text-success" },
-          { title: "Expense by category", buckets: sortedBuckets(expenseByCategory), color: "text-danger" },
-          { title: "Transfers in by account", buckets: sortedBuckets(transferInByAccount), color: "text-accent" },
-          { title: "Transfers out by account", buckets: sortedBuckets(transferOutByAccount), color: "text-danger" },
-        ]
-          .filter((section) => section.buckets.length > 0)
-          .map((section) => (
-            <div key={section.title} className="mt-4">
-              <p className="text-xs font-medium text-fg-muted">{section.title}</p>
-              <ul className="mt-1 space-y-1">
-                {section.buckets.map((b) => (
-                  <li key={b.key} className="flex items-center justify-between text-sm">
-                    <span className="text-fg">
-                      {b.icon} {b.name}
-                    </span>
-                    <span className={`font-medium ${section.color}`}>
-                      {formatMoney(b.total, account.currency)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0.5 rounded-full border border-border bg-surface p-1">
+            <Link
+              href={`/accounts/${account.id}?month=${prevMonth}`}
+              aria-label="Previous month"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg"
+            >
+              ‹
+            </Link>
+            <span className="px-2.5 text-[13px] font-medium text-fg">{monthLabel(monthKey)}</span>
+            <Link
+              href={`/accounts/${account.id}?month=${nextMonth}`}
+              aria-label="Next month"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg"
+            >
+              ›
+            </Link>
+          </div>
+          <Link
+            href={`/accounts/${account.id}/edit`}
+            className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-fg hover:bg-surface-2"
+          >
+            Edit
+          </Link>
+          <DeleteAccountButton accountId={account.id} />
+        </div>
       </div>
 
-      <div className="mt-10">
-        <h2 className="text-sm font-semibold text-fg">
-          {monthLabel(monthKey)} transactions
-        </h2>
-        {hiddenFutureCount > 0 && (
-          <p className="mt-1 text-xs text-fg-muted">
-            {hiddenFutureCount} upcoming transaction{hiddenFutureCount === 1 ? "" : "s"} hidden —{" "}
-            <Link href="/settings" className="hover:underline">
-              Show Future Transactions is off
-            </Link>
-            .
-          </p>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <section className={`${card} lg:col-span-5`}>
+          <CategoryPieChart
+            data={pieData}
+            currency={account.currency}
+            showDataLabels
+            centerLabel={pieCenterLabel}
+            centerValue={pieCenterValue}
+            centerSubtext={pieCenterSubtext}
+          />
+          {!isCreditGauge && endingBalance < 0 && (
+            <p className="mt-1 text-center text-xs font-medium text-danger">
+              Overdrawn by {formatMoney(-endingBalance, account.currency)}
+            </p>
+          )}
+
+          {account.type === "CREDIT_CARD" && account.creditLimit && (
+            <div className="mt-3 space-y-1 border-t border-border pt-3 text-sm text-fg-muted">
+              <p>Credit limit: {formatMoney(Number(account.creditLimit), account.currency)}</p>
+              <p>Available credit: {formatMoney(availableCredit!, account.currency)}</p>
+              {owed > Number(account.creditLimit) && (
+                <p className="text-xs font-medium text-danger">
+                  Over limit by {formatMoney(owed - Number(account.creditLimit), account.currency)}
+                </p>
+              )}
+            </div>
+          )}
+
+          {debtPayoffProjection && (
+            <p className="mt-2 text-xs text-fg-muted">
+              {debtPayoffProjection.projectedDate
+                ? `At your trailing 6-month pace (${formatMoney(debtPayoffProjection.monthlyReduction, account.currency)}/mo), projected debt-free around ${debtPayoffProjection.projectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}.`
+                : "Not currently trending toward payoff — balance isn't shrinking over the trailing 6 months."}
+            </p>
+          )}
+        </section>
+
+        <section className={`${card} lg:col-span-7`}>
+          <div className={cardHead}>
+            <h2 className={cardTitle}>This period</h2>
+            <div className="flex gap-2">
+              <Link
+                href={`/transactions/new?type=INCOME&accountId=${account.id}`}
+                className="rounded-lg border border-border px-3 py-1.5 text-[12.5px] font-medium text-fg hover:bg-surface-2"
+              >
+                + Income
+              </Link>
+              <Link
+                href={`/transactions/new?type=EXPENSE&accountId=${account.id}`}
+                className="rounded-lg border border-border px-3 py-1.5 text-[12.5px] font-medium text-fg hover:bg-surface-2"
+              >
+                + Expense
+              </Link>
+              <Link
+                href={`/transactions/new?type=TRANSFER&accountId=${account.id}`}
+                className="rounded-lg border border-border px-3 py-1.5 text-[12.5px] font-medium text-fg hover:bg-surface-2"
+              >
+                + Transfer
+              </Link>
+            </div>
+          </div>
+
+          {effectiveSettings.budgetModeEnabled && account.monthlyBudget && (
+            <div className="mb-4 rounded-xl bg-surface-2 p-3.5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium text-fg">Budget Mode</span>
+                <span
+                  className={
+                    totalOut > Number(account.monthlyBudget) ? "font-medium text-danger" : "text-fg-muted"
+                  }
+                >
+                  {formatMoney(totalOut, account.currency)} of{" "}
+                  {formatMoney(Number(account.monthlyBudget), account.currency)}
+                </span>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
+                <div
+                  className={`h-full ${totalOut > Number(account.monthlyBudget) ? "bg-danger" : "bg-accent"}`}
+                  style={{ width: `${Math.min(100, (totalOut / Number(account.monthlyBudget)) * 100)}%` }}
+                />
+              </div>
+              {totalOut > Number(account.monthlyBudget) && (
+                <p className="mt-1 text-xs font-medium text-danger">
+                  {formatMoney(totalOut - Number(account.monthlyBudget), account.currency)} over this
+                  account&rsquo;s monthly budget
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-surface-2 p-3.5">
+              <p className="text-[11px] text-fg-muted">Carry forward</p>
+              <p className="font-data mt-1.5 text-[17px] font-semibold tabular-nums text-fg">
+                {formatMoney(carryForward, account.currency)}
+              </p>
+            </div>
+            <div className="rounded-xl bg-surface-2 p-3.5">
+              <p className="text-[11px] text-fg-muted">Total in</p>
+              <p className="font-data mt-1.5 text-[17px] font-semibold tabular-nums text-success">
+                +{formatMoney(totalIn, account.currency)}
+              </p>
+            </div>
+            <div className="rounded-xl bg-surface-2 p-3.5">
+              <p className="text-[11px] text-fg-muted">Total out</p>
+              <p className="font-data mt-1.5 text-[17px] font-semibold tabular-nums text-danger">
+                −{formatMoney(totalOut, account.currency)}
+              </p>
+            </div>
+            <div className="rounded-xl bg-surface-2 p-3.5">
+              <p className="text-[11px] text-fg-muted">Left to spend</p>
+              <p
+                className={`font-data mt-1.5 text-[17px] font-semibold tabular-nums ${leftToSpend >= 0 ? "text-success" : "text-danger"}`}
+              >
+                {formatMoney(leftToSpend, account.currency)}
+              </p>
+            </div>
+          </div>
+
+          {safeToSpendPerDay !== null && (
+            <p className="mt-3 text-xs text-fg-muted">
+              Safe to spend:{" "}
+              <span className="font-data font-medium tabular-nums text-fg">
+                {formatMoney(safeToSpendPerDay, account.currency)}/day
+              </span>{" "}
+              ({daysRemaining} days left)
+            </p>
+          )}
+        </section>
+
+        {breakdownSections.length > 0 && (
+          <section className={`${card} lg:col-span-5`}>
+            <div className={cardHead}>
+              <h2 className={cardTitle}>Breakdown</h2>
+              <Link href={`/transactions?accountId=${account.id}`} className={link}>
+                Full history
+              </Link>
+            </div>
+            {breakdownSections.map((section, i) => (
+              <div key={section.title} className={i > 0 ? "mt-4" : ""}>
+                <p className="text-xs font-medium text-fg-muted">{section.title}</p>
+                <ul className="mt-1 space-y-1">
+                  {section.buckets.map((b) => (
+                    <li key={b.key} className="flex items-center justify-between text-sm">
+                      <span className="text-fg">
+                        {b.icon} {b.name}
+                      </span>
+                      <span className={`font-data font-medium tabular-nums ${section.color}`}>
+                        {formatMoney(b.total, account.currency)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </section>
         )}
 
-        {visibleTransactions.length === 0 ? (
-          <p className="mt-3 text-sm text-fg-muted">No transactions this month.</p>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {visibleTransactions.map((t) => (
-              <li
-                key={t.id}
-                className="flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2"
-              >
-                <div>
-                  <p className="text-sm font-medium text-fg">
-                    {t.isOpeningBalance
-                      ? "🏦 Opening balance"
-                      : t.type === "TRANSFER"
-                        ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
-                        : (t.category?.name ?? "Uncategorized")}
-                  </p>
-                  <p className="text-xs text-fg-muted">
-                    {t.date.toISOString().slice(0, 10)}
-                    {t.recurringRuleId ? " · 🔁" : ""}
-                  </p>
-                  {t.tags.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {t.tags.map(({ tag }) => (
-                        <Link
-                          key={tag.id}
-                          href={`/tags/${encodeURIComponent(tag.name)}`}
-                          className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-fg-muted hover:bg-surface-3"
-                        >
-                          🏷️ {tag.name}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <p
-                    className={`text-sm font-medium ${
-                      t.type === "INCOME"
-                        ? "text-success"
-                        : t.type === "EXPENSE"
-                          ? "text-danger"
-                          : "text-fg"
-                    }`}
-                  >
-                    {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}
-                    {formatMoney(Number(t.amount), account.currency)}
-                  </p>
-                  {t.isOpeningBalance ? (
-                    <Link
-                      href={`/accounts/${account.id}/edit`}
-                      className="text-xs font-medium text-fg-muted hover:underline"
+        <section className={`${card} ${breakdownSections.length > 0 ? "lg:col-span-7" : "lg:col-span-12"}`}>
+          <div className={cardHead}>
+            <h2 className={cardTitle}>{monthLabel(monthKey)} transactions</h2>
+          </div>
+          {hiddenFutureCount > 0 && (
+            <p className="mb-3 text-xs text-fg-muted">
+              {hiddenFutureCount} upcoming transaction{hiddenFutureCount === 1 ? "" : "s"} hidden —{" "}
+              <Link href="/settings" className="hover:underline">
+                Show Future Transactions is off
+              </Link>
+              .
+            </p>
+          )}
+
+          {visibleTransactions.length === 0 ? (
+            <p className="text-sm text-fg-muted">No transactions this month.</p>
+          ) : (
+            <ul>
+              {visibleTransactions.map((t) => (
+                <li
+                  key={t.id}
+                  className="flex items-center justify-between border-t border-border py-2.5 first:border-t-0"
+                >
+                  <div>
+                    <p className="text-[13.5px] font-medium text-fg">
+                      {t.isOpeningBalance
+                        ? "🏦 Opening balance"
+                        : t.type === "TRANSFER"
+                          ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
+                          : (t.category?.name ?? "Uncategorized")}
+                    </p>
+                    <p className="text-[11.5px] text-fg-subtle">
+                      {t.date.toISOString().slice(0, 10)}
+                      {t.recurringRuleId ? " · 🔁" : ""}
+                    </p>
+                    {t.tags.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {t.tags.map(({ tag }) => (
+                          <Link
+                            key={tag.id}
+                            href={`/tags/${encodeURIComponent(tag.name)}`}
+                            className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-fg-muted hover:bg-surface-3"
+                          >
+                            🏷️ {tag.name}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <p
+                      className={`font-data text-[13.5px] font-semibold tabular-nums ${
+                        t.type === "INCOME"
+                          ? "text-success"
+                          : t.type === "EXPENSE"
+                            ? "text-danger"
+                            : "text-fg"
+                      }`}
                     >
-                      Edit account
-                    </Link>
-                  ) : (
-                    <>
+                      {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}
+                      {formatMoney(Number(t.amount), account.currency)}
+                    </p>
+                    {t.isOpeningBalance ? (
                       <Link
-                        href={`/transactions/new?duplicateId=${t.id}`}
+                        href={`/accounts/${account.id}/edit`}
                         className="text-xs font-medium text-fg-muted hover:underline"
                       >
-                        Duplicate
+                        Edit account
                       </Link>
-                      <Link
-                        href={`/transactions/${t.id}/edit`}
-                        className="text-xs font-medium text-fg-muted hover:underline"
-                      >
-                        Edit
-                      </Link>
-                      <DeleteTransactionButton
-                        transactionId={t.id}
-                        redirectTo={`/accounts/${account.id}?month=${monthParamString(monthKey)}`}
-                        isRecurring={!!t.recurringRuleId}
-                      />
-                    </>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+                    ) : (
+                      <>
+                        <Link
+                          href={`/transactions/new?duplicateId=${t.id}`}
+                          className="text-xs font-medium text-fg-muted hover:underline"
+                        >
+                          Duplicate
+                        </Link>
+                        <Link
+                          href={`/transactions/${t.id}/edit`}
+                          className="text-xs font-medium text-fg-muted hover:underline"
+                        >
+                          Edit
+                        </Link>
+                        <DeleteTransactionButton
+                          transactionId={t.id}
+                          redirectTo={`/accounts/${account.id}?month=${monthParamString(monthKey)}`}
+                          isRecurring={!!t.recurringRuleId}
+                        />
+                      </>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
     </div>
   );

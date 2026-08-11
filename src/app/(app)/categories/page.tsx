@@ -38,18 +38,18 @@ export default async function CategoriesPage({
   const spendByCategory = new Map(spendRows.map((r) => [r.categoryId, Number(r._sum.amount ?? 0)]));
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-fg">Categories</h1>
+    <div className="mx-auto w-full max-w-[1400px] p-6 lg:p-10">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold tracking-tight text-fg">Categories</h1>
         <Link
           href={`/categories/new?type=${type}`}
-          className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong"
+          className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong"
         >
           + New Category
         </Link>
       </div>
 
-      <div className="mt-4 flex gap-1 border-b border-border">
+      <div className="mb-4 flex gap-1 border-b border-border">
         {CATEGORY_TYPES.map((t) => (
           <Link
             key={t}
@@ -66,11 +66,9 @@ export default async function CategoriesPage({
       </div>
 
       {categories.length === 0 ? (
-        <p className="mt-6 text-sm text-fg-muted">
-          No {CATEGORY_TYPE_LABELS[type].toLowerCase()} categories yet.
-        </p>
+        <p className="text-sm text-fg-muted">No {CATEGORY_TYPE_LABELS[type].toLowerCase()} categories yet.</p>
       ) : (
-        <ul className="mt-4 space-y-2">
+        <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {categories.map((category) => {
             const budget = category.monthlyBudget ? Number(category.monthlyBudget) : null;
             const spent = spendByCategory.get(category.id) ?? 0;
@@ -78,21 +76,21 @@ export default async function CategoriesPage({
             const overBudget = budget !== null && spent > budget;
 
             return (
-              <li key={category.id} className="rounded-lg border border-border bg-surface px-4 py-3">
+              <li key={category.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span
-                      className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-lg"
                       style={{ backgroundColor: category.color + "20" }}
                     >
                       {category.icon}
                     </span>
                     <p className="text-sm font-medium text-fg">{category.name}</p>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     <Link
                       href={`/categories/${category.id}/edit`}
-                      className="text-sm font-medium text-fg hover:underline"
+                      className="text-xs font-medium text-fg hover:underline"
                     >
                       Edit
                     </Link>
@@ -101,7 +99,7 @@ export default async function CategoriesPage({
                 </div>
 
                 {budget !== null && (
-                  <div className="mt-2">
+                  <div className="mt-3 border-t border-border pt-3">
                     <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
                       <div
                         className={`h-full ${overBudget ? "bg-danger" : "bg-accent"}`}

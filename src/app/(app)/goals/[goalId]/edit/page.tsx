@@ -17,9 +17,9 @@ export default async function EditGoalPage({
   if (!goal) notFound();
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-semibold text-fg">Edit Goal</h1>
-      <div className="mt-6">
+    <div className="mx-auto w-full max-w-2xl p-6 lg:p-10">
+      <h1 className="text-xl font-semibold tracking-tight text-fg">Edit Goal</h1>
+      <div className="mt-6 rounded-2xl border border-border bg-surface p-5 shadow-sm">
         <GoalForm
           action={updateGoal.bind(null, goal.id)}
           submitLabel="Save changes"

@@ -11,17 +11,20 @@ export default async function SettingsPage() {
   const profile = await prisma.profile.findUniqueOrThrow({ where: { id: userId } });
 
   return (
-    <div className="max-w-md p-6">
+    <div className="mx-auto w-full max-w-xl p-6 lg:p-10">
       <Link href="/profile" className="text-sm font-medium text-fg-muted hover:underline">
         ← Back to Profile
       </Link>
-      <h1 className="mt-4 text-xl font-semibold text-fg">Settings</h1>
+      <h1 className="mt-4 text-xl font-semibold tracking-tight text-fg">Settings</h1>
       <p className="mt-1 text-sm text-fg-muted">
         Global defaults — any account can override these individually from its own edit page.
       </p>
 
-      <form action={updateGlobalSettings} className="mt-6 space-y-6">
-        <div className="rounded-md border border-border p-3">
+      <form
+        action={updateGlobalSettings}
+        className="mt-6 space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-sm"
+      >
+        <div className="rounded-xl bg-surface-2 p-3.5">
           <label className="flex items-start gap-3">
             <input
               type="checkbox"
@@ -38,7 +41,7 @@ export default async function SettingsPage() {
           </label>
         </div>
 
-        <div className="rounded-md border border-border p-3">
+        <div className="rounded-xl bg-surface-2 p-3.5">
           <label className="flex items-start gap-3">
             <input
               type="checkbox"
@@ -59,7 +62,7 @@ export default async function SettingsPage() {
 
         <button
           type="submit"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-strong"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-strong"
         >
           Save settings
         </button>

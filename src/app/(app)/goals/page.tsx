@@ -45,29 +45,27 @@ export default async function GoalsPage() {
   });
 
   return (
-    <div className="max-w-md p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-fg">Goals</h1>
+    <div className="mx-auto w-full max-w-[1400px] p-6 lg:p-10">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold tracking-tight text-fg">Goals</h1>
         <Link
           href="/goals/new"
-          className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong"
+          className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong"
         >
           + New Goal
         </Link>
       </div>
-      <p className="mt-1 text-sm text-fg-muted">
+      <p className="mb-6 text-sm text-fg-muted">
         Tracked against net worth. Projected dates use your trailing {TRAILING_MONTHS}-month growth rate
         ({formatMoney(monthlyGrowth, "INR")}/mo).
       </p>
 
       {rows.length === 0 ? (
-        <p className="mt-6 text-sm text-fg-muted">
-          No goals yet. Set a net worth target to start tracking progress.
-        </p>
+        <p className="text-sm text-fg-muted">No goals yet. Set a net worth target to start tracking progress.</p>
       ) : (
-        <ul className="mt-4 space-y-3">
+        <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {rows.map(({ goal, target, remaining, percent, reached, projectedDate, isBehindTarget }) => (
-            <li key={goal.id} className="rounded-lg border border-border bg-surface p-4">
+            <li key={goal.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-fg">{goal.name}</p>
                 <p className="text-sm font-medium text-fg">{formatMoney(target, "INR")}</p>

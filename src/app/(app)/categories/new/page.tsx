@@ -10,9 +10,9 @@ export default async function NewCategoryPage({
   const type = rawType === "INCOME" ? "INCOME" : "EXPENSE";
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-semibold text-fg">New Category</h1>
-      <div className="mt-6">
+    <div className="mx-auto w-full max-w-2xl p-6 lg:p-10">
+      <h1 className="text-xl font-semibold tracking-tight text-fg">New Category</h1>
+      <div className="mt-6 rounded-2xl border border-border bg-surface p-5 shadow-sm">
         <CategoryForm action={createCategory} submitLabel="Create category" defaultValues={{ type }} />
       </div>
     </div>

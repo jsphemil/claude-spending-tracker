@@ -81,49 +81,50 @@ export default async function AccountsPage({
   const nextMonth = monthParamString(shiftMonth(monthKey, 1));
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-fg">Accounts</h1>
-        <Link
-          href="/accounts/new"
-          className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong"
-        >
-          + New Account
-        </Link>
-      </div>
-
-      <div className="mt-4 flex items-center justify-between">
-        <Link
-          href={`/accounts?month=${prevMonth}`}
-          className="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:bg-surface-2"
-        >
-          ← Prev
-        </Link>
-        <p className="text-sm font-medium text-fg">{monthLabel(monthKey)}</p>
-        <Link
-          href={`/accounts?month=${nextMonth}`}
-          className="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:bg-surface-2"
-        >
-          Next →
-        </Link>
+    <div className="mx-auto w-full max-w-[1400px] p-6 lg:p-10">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold tracking-tight text-fg">Accounts</h1>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-0.5 rounded-full border border-border bg-surface p-1">
+            <Link
+              href={`/accounts?month=${prevMonth}`}
+              aria-label="Previous month"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg"
+            >
+              ‹
+            </Link>
+            <span className="px-2.5 text-[13px] font-medium text-fg">{monthLabel(monthKey)}</span>
+            <Link
+              href={`/accounts?month=${nextMonth}`}
+              aria-label="Next month"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg"
+            >
+              ›
+            </Link>
+          </div>
+          <Link
+            href="/accounts/new"
+            className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong"
+          >
+            + New Account
+          </Link>
+        </div>
       </div>
 
       {rows.length === 0 ? (
-        <p className="mt-6 text-sm text-fg-muted">
-          No accounts yet. Create your first one to get started.
-        </p>
+        <p className="text-sm text-fg-muted">No accounts yet. Create your first one to get started.</p>
       ) : (
-        <ul className="mt-4 space-y-2">
+        <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {rows.map(({ account, income, expense, netTransfer, balance, balanceInr }) => (
             <li key={account.id}>
               <Link
                 href={`/accounts/${account.id}?month=${monthParamString(monthKey)}`}
-                className="block rounded-lg border border-border bg-surface px-4 py-3 hover:border-border"
+                className="block rounded-2xl border border-border bg-surface p-4 shadow-sm hover:border-border-strong"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span
-                      className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-lg"
                       style={{ backgroundColor: account.color + "20" }}
                     >
                       {account.icon}
@@ -137,22 +138,26 @@ export default async function AccountsPage({
                     amount={balance}
                     currency={account.currency}
                     inrEquivalent={balanceInr}
-                    className="text-sm font-medium text-fg"
+                    className="font-data text-sm font-medium tabular-nums text-fg"
                   />
                 </div>
-                <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border pt-3 text-xs">
                   <div>
                     <p className="text-fg-muted">Income</p>
-                    <p className="font-medium text-success">{formatMoney(income, account.currency)}</p>
+                    <p className="font-data font-medium tabular-nums text-success">
+                      {formatMoney(income, account.currency)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-fg-muted">Expense</p>
-                    <p className="font-medium text-danger">{formatMoney(expense, account.currency)}</p>
+                    <p className="font-data font-medium tabular-nums text-danger">
+                      {formatMoney(expense, account.currency)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-fg-muted">Transfers</p>
                     <p
-                      className={`font-medium ${netTransfer >= 0 ? "text-accent" : "text-danger"}`}
+                      className={`font-data font-medium tabular-nums ${netTransfer >= 0 ? "text-accent" : "text-danger"}`}
                     >
                       {netTransfer >= 0 ? "+" : ""}
                       {formatMoney(netTransfer, account.currency)}
