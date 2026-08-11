@@ -12,6 +12,7 @@ import {
   monthParamString,
   monthRange,
   monthShortLabel,
+  monthsBetween,
   parseMonthParam,
   previousMonthEnd,
   shiftMonth,
@@ -40,9 +41,21 @@ export default async function DashboardPage({
 
   await ensureMaterialized(userId, { through: end });
 
-  // Last 12 months ending at whichever month is being viewed, so paging
-  // the Dashboard backward also shifts the trend window to match.
-  const trendMonths = Array.from({ length: 12 }, (_, i) => shiftMonth(monthKey, i - 11));
+  // Up to 12 months ending at whichever month is being viewed, so paging
+  // the Dashboard backward also shifts the trend window to match — but
+  // never further back than the account's own history, so a profile
+  // created this month doesn't show 11 months of misleading flat-zero
+  // padding before it existed.
+  const earliestTransaction = await prisma.transaction.findFirst({
+    where: { userId },
+    orderBy: { date: "asc" },
+    select: { date: true },
+  });
+  const earliestMonthKey = earliestTransaction
+    ? { year: earliestTransaction.date.getUTCFullYear(), monthIndex: earliestTransaction.date.getUTCMonth() }
+    : monthKey;
+  const trendLength = Math.min(12, Math.max(1, monthsBetween(earliestMonthKey, monthKey) + 1));
+  const trendMonths = Array.from({ length: trendLength }, (_, i) => shiftMonth(monthKey, i - (trendLength - 1)));
   const trendCutoffs = trendMonths.map((mk) => monthRange(mk).end);
 
   const [
@@ -236,29 +249,11 @@ export default async function DashboardPage({
         <section className={`${card} lg:col-span-7`}>
           <div className={cardHead}>
             <h2 className={cardTitle}>Net worth trend</h2>
-            <span className="text-[11px] font-medium uppercase tracking-wide text-fg-subtle">Last 12 months</span>
+            <span className="text-[11px] font-medium uppercase tracking-wide text-fg-subtle">
+              {trendLength >= 12 ? "Last 12 months" : `Since ${monthShortLabel(trendMonths[0])}`}
+            </span>
           </div>
-          <div className="mb-3 flex gap-6">
-            <div>
-              <p className="font-data text-[15px] font-semibold tabular-nums text-success">
-                +{formatMoney(income, "INR")}
-              </p>
-              <p className="text-[11px] text-fg-muted">Income</p>
-            </div>
-            <div>
-              <p className="font-data text-[15px] font-semibold tabular-nums text-danger">
-                −{formatMoney(expense, "INR")}
-              </p>
-              <p className="text-[11px] text-fg-muted">Expense</p>
-            </div>
-            <div>
-              <p className="font-data text-[15px] font-semibold tabular-nums text-fg">
-                {formatMoney(carryForward, "INR")}
-              </p>
-              <p className="text-[11px] text-fg-muted">Carry forward</p>
-            </div>
-          </div>
-          <NetWorthTrendChart data={netWorthTrendData} currency="INR" height={140} />
+          <NetWorthTrendChart data={netWorthTrendData} currency="INR" height={180} />
         </section>
 
         <div className="grid grid-cols-2 gap-3 lg:col-span-12 sm:grid-cols-4">

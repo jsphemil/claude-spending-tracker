@@ -44,6 +44,13 @@ export function shiftMonth({ year, monthIndex }: MonthKey, delta: number): Month
   return { year: d.getUTCFullYear(), monthIndex: d.getUTCMonth() };
 }
 
+// Signed count of calendar months from `a` to `b` — e.g. Jun '26 to Aug '26
+// is 2. Used to size a trend window down to however much history actually
+// exists instead of always assuming a fixed lookback.
+export function monthsBetween(a: MonthKey, b: MonthKey): number {
+  return (b.year - a.year) * 12 + (b.monthIndex - a.monthIndex);
+}
+
 export function monthRange({ year, monthIndex }: MonthKey) {
   return {
     start: new Date(Date.UTC(year, monthIndex, 1)),
