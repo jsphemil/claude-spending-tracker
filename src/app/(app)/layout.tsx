@@ -4,6 +4,7 @@ import { getVerifiedUserId } from "@/lib/supabase/server";
 import { SideNav, BottomTabBar } from "@/components/nav/NavShell";
 import { ClaudeFabPlaceholder } from "@/components/nav/ClaudeFabPlaceholder";
 import { QuickAddButton } from "@/components/transactions/QuickAddButton";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // Defense-in-depth alongside proxy.ts — every Server Action must also
@@ -37,6 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main id="main-content" className="flex-1 overflow-y-auto pb-16 md:pb-0">
         {children}
       </main>
+      <ThemeToggle className="fixed right-4 top-4 z-40 h-9 w-9 shadow-sm md:hidden" />
       <BottomTabBar />
       <QuickAddButton accounts={accounts} categories={categories} existingTagNames={tags.map((t) => t.name)} />
       <ClaudeFabPlaceholder />
