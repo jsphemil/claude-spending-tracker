@@ -14,7 +14,7 @@ import {
 } from "@/lib/services/recurrence";
 import { parseTagInput, resolveTagIds, syncTransactionTags } from "@/lib/services/tags";
 
-export type TransactionActionState = { error: string | null };
+export type TransactionActionState = { error: string | null; success?: boolean };
 
 async function validateReferences(userId: string, data: TransactionInput): Promise<string | null> {
   if (data.type === "TRANSFER") {
@@ -95,6 +95,51 @@ export async function createTransaction(
   }
 
   redirect(`/accounts/${redirectAccountId}`);
+}
+
+// Same creation path as createTransaction, minus recurring support and the
+// redirect-to-account-page finish — used by the Quick Add floating button,
+// which opens as a modal over whatever page you're already on and should
+// leave you there, not navigate away. Recurring setup stays on the full
+// New Transaction page since "quick" is the whole point of this entry point.
+export async function quickAddTransaction(
+  _prevState: TransactionActionState,
+  formData: FormData
+): Promise<TransactionActionState> {
+  const userId = await getVerifiedUserId();
+  if (!userId) redirect("/login");
+
+  const parsed = parseTransactionFormData(formData);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  const refError = await validateReferences(userId, parsed.data);
+  if (refError) return { error: refError };
+
+  const tagNames = parseTagInput(formData.get("tags"));
+  const tagIds = await resolveTagIds(userId, tagNames);
+
+  let createdId: string;
+  if (parsed.data.type === "TRANSFER") {
+    const { type, amount, date, description, fromAccountId, toAccountId } = parsed.data;
+    const created = await prisma.transaction.create({
+      data: { userId, type, amount, date, description, fromAccountId, toAccountId },
+    });
+    createdId = created.id;
+  } else {
+    const { type, amount, date, description, accountId, categoryId } = parsed.data;
+    const created = await prisma.transaction.create({
+      data: { userId, type, amount, date, description, accountId, categoryId },
+    });
+    createdId = created.id;
+  }
+
+  if (tagIds.length > 0) {
+    await syncTransactionTags(createdId, tagIds);
+  }
+
+  return { error: null, success: true };
 }
 
 export async function updateTransaction(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { TransactionActionState } from "@/lib/actions/transactions";
 import { RECURRENCE_UNITS } from "@/lib/validation/recurring";
@@ -59,6 +59,8 @@ export function TransactionForm({
   submitLabel,
   allowRecurring = false,
   recurringInfo = null,
+  onCancel,
+  onSuccess,
 }: {
   action: (
     state: TransactionActionState,
@@ -74,9 +76,19 @@ export function TransactionForm({
   allowRecurring?: boolean;
   /** Set when editing a transaction that's part of a recurring series. */
   recurringInfo?: { scheduleLabel: string; endDate: string } | null;
+  /** Overrides the default router.back() — used when the form is inside a modal (Quick Add) rather than its own page. */
+  onCancel?: () => void;
+  /** Called once the action reports success. Only fires for actions that return `success: true` instead of redirecting (e.g. quickAddTransaction). */
+  onSuccess?: () => void;
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(action, initialState);
+
+  useEffect(() => {
+    if (state.success) onSuccess?.();
+    // Only re-run when success flips, not on every onSuccess identity change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.success]);
   const values = { ...emptyValues, ...defaultValues };
   const [type, setType] = useState<TransactionType>(values.type);
   const [recurring, setRecurring] = useState(false);
@@ -410,7 +422,7 @@ export function TransactionForm({
           </button>
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => (onCancel ? onCancel() : router.back())}
             disabled={pending}
             className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:underline disabled:opacity-50"
           >

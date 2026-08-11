@@ -8,15 +8,18 @@ A personal finance app for tracking money across multiple accounts (bank account
 
 ## 2. Platform
 
-- **First build:** Web app — must work well in a browser on both desktop and mobile (responsive design, not just a desktop layout squeezed onto a small screen)
-- **Later:** Wrapped as a native app (via Capacitor) so it's also installable from the Play Store/App Store, without needing to rebuild the core app — same code, packaged differently
-- End goal: reachable both by opening a website (any device's browser) and by opening an installed app
+- **v1 (built):** Web app — works well in a browser on both desktop and mobile (responsive design, not a desktop layout squeezed onto a small screen). See section 8 for what's actually live.
+- **v2 (planned — not started, see section 10):** A real native Android (and later iOS) app, installable from the Play Store, wrapping the same core app via Capacitor rather than a separate rebuild.
+  - **Critical v2 requirement:** the mobile app must be fully usable with no internet connection — not just tolerant of brief drops. Viewing balances, browsing transaction history, and adding/editing transactions all need to work offline, syncing to the cloud whenever a connection is available.
+- End goal: reachable both by opening a website (any device's browser, cloud-backed, requires connectivity) and by opening an installed Android/iOS app (offline-capable, local-first).
 
 ## 3. Where data lives
 
-- Data is stored in the cloud, so it's the same whether you log in from your phone, laptop, or any other device.
-- **Web app:** saves directly to the cloud. Requires an internet connection to save changes (no offline mode on web for v1).
-- **Native mobile app (later phase):** saves **locally first**, then syncs to the cloud automatically whenever an internet connection is available. This means transactions can still be logged offline on the phone; they just wait to sync rather than failing to save. Conflict handling (e.g. the same account edited offline on two devices before either syncs) is a detail to work out when we get to that phase — flagging it now so it's not forgotten later.
+- **v1 (built):** Data lives in the cloud (Supabase/Postgres) — the same whether you log in from your phone, laptop, or any other device. The web app saves directly to the cloud and requires an internet connection to save changes; there is no offline mode on web.
+- **v2 (planned — not started, see section 10):**
+  - **Native mobile app:** saves **locally first** (on-device database), then syncs to the cloud automatically whenever a connection is available. Transactions can be logged fully offline; they just wait to sync rather than failing to save. Conflict handling (the same account edited offline on two devices before either syncs) needs a concrete strategy before this is built — flagged as an open decision in section 10.2, not forgotten.
+  - **Backup & restore:** a way to back up all app data and restore it — covering both "I lost my phone" and "I'm reinstalling the app" — independent of whether the cloud sync itself is working. See section 10.3.
+  - **Third-party sync (Dropbox-style):** possibly using a service like Dropbox as a sync/backup destination the user controls themselves, as an alternative or supplement to our own cloud backend. Open question on scope — see section 10.4.
 
 ## 4. Logging in
 
@@ -140,6 +143,7 @@ Everything below is the "must-have" list. Anything not listed here (dark theme, 
 
 - A persistent way to move between the main sections (Dashboard, Accounts, Transactions, Categories, Profile) from anywhere in the app — e.g. a bottom tab bar on mobile-width screens, a side or top nav on wider screens
 - The floating Claude assistant icon (section 5.7) stays visible and accessible no matter which page you're on
+- The floating Quick Add button (section 5.12) also stays visible from anywhere in the app, independent of the Claude assistant icon's slot
 
 ### 5.10 Profile Page
 
@@ -158,16 +162,24 @@ Everything below is the "must-have" list. Anything not listed here (dark theme, 
 - **Changing the account at entry time:** tapping + Expense or + Income opens the transaction entry screen pre-filled with the widget's account, but that account can still be changed there before the transaction is confirmed — the widget's account is a default, not a lock
 - This depends on the native app wrapper (section 2), so it comes after the web app is working, not in the very first version
 
+### 5.12 Quick Add (Floating Button)
+
+- A floating button, visible from any page in the app (not just the Dashboard), for quickly logging a transaction without navigating away from whatever you're looking at
+- Opens the same Income/Expense/Transfer entry form used elsewhere in the app, as a modal/overlay rather than a full page navigation, so you land back where you were after saving
+- If you're on a specific account's page when you tap it, that account is pre-filled as the default — same "default, not a lock" pattern as the mobile home-screen widget (section 5.11)
+- Distinct from the Claude assistant icon (section 5.7) — this is a direct, form-based fast path; the Claude icon is for typed/conversational entry. Both can coexist once 5.7 is built
+- Applies to both the current web app and the future mobile app — not gated on the v2 mobile work in section 10
+
 ## 6. Explicitly out of scope for v1
 
 (Move these up if you want them sooner — just say so.)
 
-- Dark mode / theme customization
-- Dropbox or other third-party backup/sync
+- ~~Dark mode / theme customization~~ — **shipped, see section 8**
+- ~~Mobile app (iOS/Android)~~ — **promoted to v2, see section 10**
+- ~~Dropbox or other third-party backup/sync~~ — **promoted to v2, see section 10**
 - Passcode/biometric lock
 - Reminders/notifications
 - Reports/charts beyond the monthly summary and pie charts
-- Mobile app (iOS/Android)
 
 ## 7. Open questions / things to decide
 
@@ -230,10 +242,13 @@ _Updated after every commit so it's always clear what's live and what's left. Br
 - **Net worth trend chart fixes.** Two issues flagged from a live screenshot: (1) the trend window was always a fixed 12 months back from whichever month is being viewed, so a profile only a few months old showed a misleading flat-₹0 line for every month before it existed; (2) the trend card also repeated Income/Expense/Carry Forward figures that aren't plotted on the line at all and already appear once in the metric strip directly below. Fixed (1) by looking up the user's actual earliest transaction (covers opening-balance rows too, since those are real `Transaction` rows) and sizing the window to `min(12, months since that transaction)` — new `monthsBetween()` helper in `calendar.ts`; the card's "Last 12 months" label becomes "Since &lt;month&gt;" whenever the window is shorter than 12. Fixed (2) by deleting the duplicated figures row from the trend card entirely — that data still lives in the metric strip. Verified live: a seed account with its earliest transaction in January correctly trimmed the chart to "Since Jan '26" (8 points) instead of 12 with 4 months of flat-zero padding, and the trend card now shows only the chart.
 - **Five fixes from live testing.** (1) Editing a recurring transaction had no way to change its end date — the "make recurring" schedule fields (interval, end date) only ever rendered at creation time; editing a series showed a static "Repeats every X" line with nothing editable. Added an editable end-date field to the edit view (interval still isn't editable in v1 — unchanged scope), wired through a new `parseEndDateFormData()` and an optional `newEndDate` param on `editFutureOccurrences()` — only takes effect when the user picks "this and all future occurrences," matching how every other field on that scope already works. Verified live: set an indefinite gym-membership rule to end Dec 2026, confirmed it persisted onto the newly-split rule, then reverted it back to indefinite. (2) `/transactions` could only filter by account/category/date — added a Type filter (Income/Expense/Transfer) to `TransactionFilters`, combinable with the rest. (3) Transfers rendered in plain `text-fg` (white in dark mode) in every mixed transaction list, indistinguishable from a glance — added a `--transfer`/`--transfer-soft` token pair (gold/amber, tuned per-theme) and switched all four unified list views (Dashboard recent transactions, Transactions list, Account detail, tag summary) plus the two remaining transfer icon backgrounds (previously a leftover hardcoded blue) onto it. Breakdown's separate transfer-in/transfer-out color coding on the account page was left as-is — that's categorical, not the "blends into income/expense" problem being fixed. (4) Account detail's Breakdown section listed every category/account under Income/Expense/Transfers with no section total — added a subtotal next to each section heading, reusing the `income`/`expense`/`transferIn`/`transferOut` figures already computed for the stats card above (no new query). (5) Dashboard's "Recent transactions → View all" always linked to bare `/transactions`, which defaults to the *current* real month regardless of which month the Dashboard was actually showing — now links to `/transactions?from=<viewed-month-start>&to=<viewed-month-end>`, so paging the Dashboard to October and clicking View all lands on October's transactions, not whichever month is "now."
 
+- **Section 5.12 — Quick Add floating button.** New floating `+` button (`QuickAddButton`), visible from every page in the `(app)` shell, positioned above the (still inert) Claude FAB placeholder with clear spacing on both mobile and desktop. Opens the same `TransactionForm` used everywhere else, as a modal rather than a page navigation — recurring setup is deliberately left off this form (stays on the full New Transaction page) to keep it genuinely quick. New `quickAddTransaction` server action mirrors `createTransaction`'s validation/creation path but returns `{ success: true }` instead of `redirect()`-ing to the account page, since a modal opened from an arbitrary page should leave you there, not bounce you to `/accounts/:id`. `TransactionForm` gained two optional props to support this: `onCancel` (Cancel button closes the modal instead of `router.back()`, which would otherwise navigate away from wherever the modal was opened) and `onSuccess` (closes the modal and calls `router.refresh()` so the page underneath — Dashboard net worth, an account's balance, a transaction list — reflects the new transaction immediately, without a full reload). If you're already on a specific account's detail page, that account comes pre-filled in the form (both the plain account field and the Transfer "from" field) — same "default, not a lock" pattern as the mobile widget in 5.11. The button hides itself entirely for a brand-new user with zero accounts, since there's nothing to log a transaction against yet. Fetches accounts/categories/tags once in the `(app)` layout (shared with nothing else currently, but a natural place for it) rather than duplicating the query per page. Verified live: submitting a test expense from the Dashboard closed the modal and updated Net Worth in place with no navigation; opening from the Cash Wallet account page correctly pre-selected Cash Wallet; Cancel closes without navigating; both themes and desktop/mobile spacing (24px clear of the Claude FAB) checked directly via computed styles and DOM `getBoundingClientRect()` (screenshot capture in this environment has a known rendering artifact on this page, noted in earlier sessions — DOM inspection is the reliable source of truth here).
+
 ### Remaining
 
 - **Section 5.7 — Smart Features (Claude-powered).** On hold, per explicit user instruction — do not start without being asked again.
 - **Roadmap #12 — Threshold alerts/notifications.** On hold, per explicit user instruction — do not start without being asked again.
+- **Section 10 — Mobile, Offline & Backup (v2).** Not started — needs the open architecture decisions (conflict resolution, backup format/destination, Dropbox's role) resolved first. See section 10 for details.
 
 ---
 
@@ -260,4 +275,37 @@ Note on #10: it scores low on pure ROI despite being the single biggest differen
 
 ---
 
-_Once this file reflects what you want, the next step is setting up Claude Code and starting the build — we'll walk through that together, one step at a time._
+## 10. Version 2 — Mobile, Offline & Backup (Planned — not started)
+
+v1 (sections 1–9) delivered a complete web app covering essentially the full original feature list; what's genuinely left from v1 itself is just section 5.7 (Claude-powered smart entry) and roadmap #12 (threshold alerts), both explicitly on hold. Everything below is new scope: turning this into a real cross-platform app that works with or without an internet connection, plus giving users a way to protect and move their own data. None of this has been built yet — it needs its own design pass before coding starts, flagged here so the shape of the problem isn't lost.
+
+### 10.1 Native mobile app (Android first, then iOS)
+
+- Wrap the existing Next.js app with **Capacitor**, per the original section 2 plan — same core app, packaged as an installable Android app (Play Store), later iOS
+- Everything in sections 5.1–5.12 needs to work inside that wrapper, including the quick-add floating button and (whenever built) the Claude assistant icon
+- Section 5.11 (home-screen widget) depends on this and stays gated behind it, as originally scoped
+
+### 10.2 Offline-first local storage & sync
+
+This is the highest-risk, highest-effort piece of v2 — the app currently assumes the cloud (Supabase/Postgres via Prisma) is the *only* copy of the data, and balances/summaries/recurring materialization are all computed live from it on every request.
+
+- The mobile app needs a **local, on-device database** (e.g. SQLite via a Capacitor plugin) that mirrors the same schema, so the whole app — viewing balances, browsing history, adding/editing transactions, even recurring materialization — works with zero connectivity
+- A **sync engine** reconciles the local database with the cloud whenever a connection is available: pushing local changes made while offline, pulling changes made elsewhere (web, another device)
+- **Open decision — conflict resolution strategy.** What happens when the same record (e.g. an account, or a transaction) is edited offline on two devices before either syncs? Options range from simple (last-write-wins by an `updatedAt` timestamp — easy to build, occasionally silently discards a change) to robust (per-field merge or a CRDT-based approach — much more engineering, no silent data loss). Needs a decision before this phase starts; flagged in v1 too and still unresolved
+- **Open decision — sync trigger.** Automatic background sync on reconnect (simplest for the user, needs Capacitor background-task support) vs. sync-on-app-open only (simpler to build, staler between opens)
+
+### 10.3 Backup & restore
+
+- A way to export a complete backup of a user's data, and restore it — covering "I lost my phone," "I'm switching devices," and "I want a local copy of everything" — independent of whether cloud sync is working
+- v1 already has a partial building block: Profile's CSV export (section 5.10) — but CSV is transactions-only and one-way (export, no import). A real backup needs to cover accounts, categories, tags, goals, recurring rules, and settings too, and be re-importable
+- **Open decision — backup format & destination.** A single downloadable file (JSON, most likely) that the user saves themselves and re-uploads to restore is the simplest version and works identically on web and mobile with no third-party integration. A "connect your Dropbox/Google Drive" flow (see 10.4) is a nicer experience but is a materially bigger lift (OAuth, token storage, background upload) — worth sequencing after the simple file-based version exists, not instead of it
+
+### 10.4 Third-party sync (Dropbox-style)
+
+- Idea raised: let users optionally sync their data through a service like Dropbox that they already control, rather than (or in addition to) relying solely on our own backend
+- **Open question this needs before it can be scoped:** is this meant as (a) an easier/alternative *backup destination* for 10.3 — periodically write the backup file to the user's connected Dropbox instead of a manual download — or (b) a genuine *alternative sync transport* to replace/supplement the Supabase backend, closer to how apps like Actual Budget let a Dropbox-hosted file be the actual source of truth? (a) is a moderate addition on top of 10.3; (b) is a fundamentally different architecture from what's built today and would need its own plan
+- No architecture decision made yet — needs to be resolved before any of 10.4 is built
+
+---
+
+_v1 is effectively feature-complete (see section 8). The next concrete, low-risk step is the Quick Add floating button (5.12) — it's well-scoped and adds value to the app as it exists today, independent of the v2 mobile/offline questions above. The v2 items in section 10 need their open decisions resolved (conflict resolution, backup format/destination, Dropbox's actual role) before implementation starts — worth a dedicated planning conversation before writing code._
