@@ -16,6 +16,7 @@ export default async function TransactionsPage({
   searchParams: Promise<{
     accountId?: string;
     categoryId?: string;
+    type?: string;
     from?: string;
     to?: string;
     all?: string;
@@ -24,7 +25,8 @@ export default async function TransactionsPage({
   const userId = await getVerifiedUserId();
   if (!userId) redirect("/login");
 
-  const { accountId, categoryId, from, to, all } = await searchParams;
+  const { accountId, categoryId, type: rawType, from, to, all } = await searchParams;
+  const type = rawType === "INCOME" || rawType === "EXPENSE" || rawType === "TRANSFER" ? rawType : undefined;
 
   // Default to the current month so a fresh visit doesn't dump the entire
   // transaction history (including future-materialized recurring rows) —
@@ -35,6 +37,7 @@ export default async function TransactionsPage({
     const params = new URLSearchParams();
     if (accountId) params.set("accountId", accountId);
     if (categoryId) params.set("categoryId", categoryId);
+    if (type) params.set("type", type);
     params.set("from", toDateKey(start));
     params.set("to", toDateKey(end));
     redirect(`/transactions?${params.toString()}`);
@@ -51,6 +54,7 @@ export default async function TransactionsPage({
     where.OR = [{ accountId }, { fromAccountId: accountId }, { toAccountId: accountId }];
   }
   if (categoryId) where.categoryId = categoryId;
+  if (type) where.type = type;
   if (from || to) {
     where.date = {
       ...(from ? { gte: new Date(from) } : {}),
@@ -134,7 +138,7 @@ export default async function TransactionsPage({
                       (t.isOpeningBalance
                         ? "#7c3aed"
                         : t.type === "TRANSFER"
-                          ? "#3b82f6"
+                          ? "#eab308"
                           : t.category?.color ?? "#71717a") + "20",
                   }}
                 >
@@ -175,7 +179,7 @@ export default async function TransactionsPage({
                         ? "text-success"
                         : t.type === "EXPENSE"
                           ? "text-danger"
-                          : "text-fg"
+                          : "text-transfer"
                     }`}
                   >
                     {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}

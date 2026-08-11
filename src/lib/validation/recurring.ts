@@ -18,3 +18,14 @@ export function parseRecurringScheduleFormData(formData: FormData) {
     endDate: endDateRaw ? endDateRaw : undefined,
   });
 }
+
+// Used on the "this and all future occurrences" edit path, where only the
+// end date is editable (not the cadence) — a blank field means "repeat
+// indefinitely," same convention as creation.
+export function parseEndDateFormData(formData: FormData): { success: true; data: Date | null } | { success: false } {
+  const raw = formData.get("endDate");
+  if (!raw || typeof raw !== "string" || raw.trim() === "") return { success: true, data: null };
+  const parsed = z.coerce.date().safeParse(raw);
+  if (!parsed.success) return { success: false };
+  return { success: true, data: parsed.data };
+}

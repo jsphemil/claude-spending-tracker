@@ -247,10 +247,20 @@ export default async function AccountDetailPage({
   const link = "text-[12.5px] font-medium text-accent hover:underline";
 
   const breakdownSections = [
-    { title: "Income by category", buckets: sortedBuckets(incomeByCategory), color: "text-success" },
-    { title: "Expense by category", buckets: sortedBuckets(expenseByCategory), color: "text-danger" },
-    { title: "Transfers in by account", buckets: sortedBuckets(transferInByAccount), color: "text-accent" },
-    { title: "Transfers out by account", buckets: sortedBuckets(transferOutByAccount), color: "text-danger" },
+    { title: "Income by category", buckets: sortedBuckets(incomeByCategory), total: income, color: "text-success" },
+    { title: "Expense by category", buckets: sortedBuckets(expenseByCategory), total: expense, color: "text-danger" },
+    {
+      title: "Transfers in by account",
+      buckets: sortedBuckets(transferInByAccount),
+      total: transferIn,
+      color: "text-accent",
+    },
+    {
+      title: "Transfers out by account",
+      buckets: sortedBuckets(transferOutByAccount),
+      total: transferOut,
+      color: "text-danger",
+    },
   ].filter((section) => section.buckets.length > 0);
 
   return (
@@ -440,7 +450,12 @@ export default async function AccountDetailPage({
             </div>
             {breakdownSections.map((section, i) => (
               <div key={section.title} className={i > 0 ? "mt-4" : ""}>
-                <p className="text-xs font-medium text-fg-muted">{section.title}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-fg-muted">{section.title}</p>
+                  <p className={`font-data text-xs font-semibold tabular-nums ${section.color}`}>
+                    {formatMoney(section.total, account.currency)}
+                  </p>
+                </div>
                 <ul className="mt-1 space-y-1">
                   {section.buckets.map((b) => (
                     <li key={b.key} className="flex items-center justify-between text-sm">
@@ -514,7 +529,7 @@ export default async function AccountDetailPage({
                           ? "text-success"
                           : t.type === "EXPENSE"
                             ? "text-danger"
-                            : "text-fg"
+                            : "text-transfer"
                       }`}
                     >
                       {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}

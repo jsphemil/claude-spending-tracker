@@ -419,7 +419,7 @@ export default async function DashboardPage({
         <section className={`${card} lg:col-span-6`}>
           <div className={cardHead}>
             <h2 className={cardTitle}>Recent transactions</h2>
-            <Link href="/transactions" className={link}>
+            <Link href={`/transactions?from=${toDateKey(start)}&to=${toDateKey(end)}`} className={link}>
               View all
             </Link>
           </div>
@@ -453,7 +453,7 @@ export default async function DashboardPage({
                           ? "text-success"
                           : t.type === "EXPENSE"
                             ? "text-danger"
-                            : "text-fg"
+                            : "text-transfer"
                       }`}
                     >
                       {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}

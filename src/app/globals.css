@@ -17,6 +17,8 @@
   --success-soft: rgba(18, 165, 124, 0.12);
   --danger: #e0435a;
   --danger-soft: rgba(224, 67, 90, 0.1);
+  --transfer: #b45309;
+  --transfer-soft: rgba(180, 83, 9, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -37,6 +39,8 @@
     --success-soft: rgba(53, 208, 160, 0.12);
     --danger: #ff6b80;
     --danger-soft: rgba(255, 107, 128, 0.12);
+    --transfer: #f5c451;
+    --transfer-soft: rgba(245, 196, 81, 0.14);
   }
 }
 
@@ -59,6 +63,8 @@
   --success-soft: rgba(53, 208, 160, 0.12);
   --danger: #ff6b80;
   --danger-soft: rgba(255, 107, 128, 0.12);
+  --transfer: #f5c451;
+  --transfer-soft: rgba(245, 196, 81, 0.14);
 }
 
 :root[data-theme="light"] {
@@ -78,6 +84,8 @@
   --success-soft: rgba(18, 165, 124, 0.12);
   --danger: #e0435a;
   --danger-soft: rgba(224, 67, 90, 0.1);
+  --transfer: #b45309;
+  --transfer-soft: rgba(180, 83, 9, 0.1);
 }
 
 @theme inline {
@@ -97,6 +105,8 @@
   --color-success-soft: var(--success-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-transfer: var(--transfer);
+  --color-transfer-soft: var(--transfer-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-data: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Consolas, monospace;

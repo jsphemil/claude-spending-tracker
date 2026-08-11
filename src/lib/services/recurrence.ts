@@ -257,14 +257,17 @@ export async function editSingleOccurrence(
 // explicit "change this and everything after" supersedes those), and opens
 // a new rule anchored on the edited date with the edited values — so moving
 // the date here reschedules this and every future occurrence (e.g. a salary
-// date shifting from the 1st to the 5th going forward). Interval/end date
-// are carried over unchanged from the old rule — v1 does not support
-// changing the recurrence cadence itself via edit.
+// date shifting from the 1st to the 5th going forward). Interval (the
+// repeat cadence) is still carried over unchanged from the old rule — v1
+// doesn't support changing that via edit — but the end date is: `newEndDate`
+// lets the caller set/clear it (undefined keeps the old rule's end date,
+// for callers that don't offer the field at all).
 export async function editFutureOccurrences(
   userId: string,
   existing: RecurringTransactionRef,
   values: TransactionInput,
-  tagIds: string[] = []
+  tagIds: string[] = [],
+  newEndDate?: Date | null
 ): Promise<string> {
   const oldRule = await prisma.recurringRule.findFirstOrThrow({
     where: { id: existing.recurringRuleId, userId },
@@ -293,7 +296,7 @@ export async function editFutureOccurrences(
         intervalCount: oldRule.intervalCount,
         intervalUnit: oldRule.intervalUnit,
         startDate: values.date,
-        endDate: oldRule.endDate,
+        endDate: newEndDate !== undefined ? newEndDate : oldRule.endDate,
         isActive: true,
         supersedesRuleId: oldRule.id,
       },

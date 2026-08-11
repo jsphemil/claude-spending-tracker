@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { getVerifiedUserId } from "@/lib/supabase/server";
 import { parseTransactionFormData, type TransactionInput } from "@/lib/validation/transaction";
-import { parseRecurringScheduleFormData } from "@/lib/validation/recurring";
+import { parseEndDateFormData, parseRecurringScheduleFormData } from "@/lib/validation/recurring";
 import {
   createRecurringSeries,
   deleteFutureOccurrences,
@@ -132,10 +132,20 @@ export async function updateTransaction(
       recurringRuleId: existing.recurringRuleId,
       occurrenceDate: existing.occurrenceDate,
     };
-    const redirectAccountId =
-      scope === "ONE"
-        ? await editSingleOccurrence(ref, parsed.data, tagIds)
-        : await editFutureOccurrences(userId, ref, parsed.data, tagIds);
+    let redirectAccountId: string;
+    if (scope === "ONE") {
+      redirectAccountId = await editSingleOccurrence(ref, parsed.data, tagIds);
+    } else {
+      const endDateParsed = parseEndDateFormData(formData);
+      if (!endDateParsed.success) return { error: "Invalid end date" };
+      redirectAccountId = await editFutureOccurrences(
+        userId,
+        ref,
+        parsed.data,
+        tagIds,
+        endDateParsed.data
+      );
+    }
     redirect(`/accounts/${redirectAccountId}`);
   }
 

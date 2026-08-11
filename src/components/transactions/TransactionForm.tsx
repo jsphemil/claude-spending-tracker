@@ -73,7 +73,7 @@ export function TransactionForm({
   /** Only meaningful at creation — shows the "make recurring" toggle. */
   allowRecurring?: boolean;
   /** Set when editing a transaction that's part of a recurring series. */
-  recurringInfo?: { scheduleLabel: string } | null;
+  recurringInfo?: { scheduleLabel: string; endDate: string } | null;
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -292,9 +292,24 @@ export function TransactionForm({
       </div>
 
       {isRecurringEdit && (
-        <p className="rounded-md bg-surface-2 px-3 py-2 text-sm text-fg-muted">
-          🔁 Part of a recurring series · {recurringInfo.scheduleLabel}
-        </p>
+        <div className="space-y-2 rounded-md bg-surface-2 px-3 py-2">
+          <p className="text-sm text-fg-muted">🔁 Part of a recurring series · {recurringInfo.scheduleLabel}</p>
+          <div className="space-y-1">
+            <label htmlFor="endDate" className="text-xs text-fg-muted">
+              End date (optional — leave blank to repeat indefinitely)
+            </label>
+            <input
+              id="endDate"
+              name="endDate"
+              type="date"
+              defaultValue={recurringInfo.endDate}
+              className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
+            />
+            <p className="text-xs text-fg-subtle">
+              Only applied if you choose &ldquo;this and all future occurrences&rdquo; below.
+            </p>
+          </div>
+        </div>
       )}
 
       {allowRecurring && !isRecurringEdit && (

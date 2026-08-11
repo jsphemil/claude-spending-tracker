@@ -80,7 +80,7 @@ export default async function TagSummaryPage({
                   className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
                   style={{
                     backgroundColor:
-                      (t.type === "TRANSFER" ? "#3b82f6" : t.category?.color ?? "#71717a") + "20",
+                      (t.type === "TRANSFER" ? "#eab308" : t.category?.color ?? "#71717a") + "20",
                   }}
                 >
                   {t.type === "TRANSFER" ? "🔁" : t.category?.icon ?? "❓"}
@@ -103,7 +103,7 @@ export default async function TagSummaryPage({
                     ? "text-success"
                     : t.type === "EXPENSE"
                       ? "text-danger"
-                      : "text-fg"
+                      : "text-transfer"
                 }`}
               >
                 {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}

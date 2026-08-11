@@ -53,6 +53,9 @@ export default async function EditTransactionPage({
                     transaction.recurringRule.intervalCount,
                     transaction.recurringRule.intervalUnit
                   ),
+                  endDate: transaction.recurringRule.endDate
+                    ? transaction.recurringRule.endDate.toISOString().slice(0, 10)
+                    : "",
                 }
               : null
           }

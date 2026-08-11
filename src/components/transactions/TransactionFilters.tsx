@@ -22,12 +22,23 @@ export function TransactionFilters({
     router.push(`/transactions?${params.toString()}`);
   }
 
-  const hasFilters = ["accountId", "categoryId", "from", "to"].some((k) =>
+  const hasFilters = ["accountId", "categoryId", "type", "from", "to"].some((k) =>
     searchParams.get(k)
   );
 
   return (
     <div key={searchParams.toString()} className="flex flex-wrap items-center gap-2">
+      <select
+        defaultValue={searchParams.get("type") ?? ""}
+        onChange={(e) => updateParam("type", e.target.value)}
+        className="rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-fg"
+      >
+        <option value="">All types</option>
+        <option value="INCOME">Income</option>
+        <option value="EXPENSE">Expense</option>
+        <option value="TRANSFER">Transfer</option>
+      </select>
+
       <select
         defaultValue={searchParams.get("accountId") ?? ""}
         onChange={(e) => updateParam("accountId", e.target.value)}
