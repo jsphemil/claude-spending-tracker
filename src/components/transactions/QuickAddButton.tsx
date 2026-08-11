@@ -83,6 +83,7 @@ export function QuickAddButton({
               categories={categories}
               existingTagNames={existingTagNames}
               submitLabel="Add transaction"
+              allowRecurring
               defaultValues={
                 currentAccountId
                   ? { accountId: currentAccountId, fromAccountId: currentAccountId }

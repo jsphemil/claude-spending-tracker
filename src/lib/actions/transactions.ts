@@ -97,11 +97,10 @@ export async function createTransaction(
   redirect(`/accounts/${redirectAccountId}`);
 }
 
-// Same creation path as createTransaction, minus recurring support and the
-// redirect-to-account-page finish — used by the Quick Add floating button,
-// which opens as a modal over whatever page you're already on and should
-// leave you there, not navigate away. Recurring setup stays on the full
-// New Transaction page since "quick" is the whole point of this entry point.
+// Same creation path as createTransaction, minus the redirect-to-account-page
+// finish — used by the Quick Add floating button, which opens as a modal
+// over whatever page you're already on and should leave you there, not
+// navigate away (including for a recurring series).
 export async function quickAddTransaction(
   _prevState: TransactionActionState,
   formData: FormData
@@ -119,6 +118,24 @@ export async function quickAddTransaction(
 
   const tagNames = parseTagInput(formData.get("tags"));
   const tagIds = await resolveTagIds(userId, tagNames);
+
+  if (formData.get("recurring") === "on") {
+    const scheduleParsed = parseRecurringScheduleFormData(formData);
+    if (!scheduleParsed.success) {
+      return { error: scheduleParsed.error.issues[0]?.message ?? "Invalid schedule" };
+    }
+    await createRecurringSeries(
+      userId,
+      parsed.data,
+      {
+        intervalCount: scheduleParsed.data.intervalCount,
+        intervalUnit: scheduleParsed.data.intervalUnit,
+        endDate: scheduleParsed.data.endDate ?? null,
+      },
+      tagIds
+    );
+    return { error: null, success: true };
+  }
 
   let createdId: string;
   if (parsed.data.type === "TRANSFER") {
