@@ -276,40 +276,46 @@ export async function editFutureOccurrences(
   const splitDate = existing.occurrenceDate;
   const dayBefore = subDayUTC(splitDate);
 
-  const newRule = await prisma.$transaction(async (tx) => {
-    await tx.recurringRule.update({
-      where: { id: oldRule.id },
-      data: { endDate: dayBefore, isActive: false },
+  // Deliberately sequential (not prisma.$transaction) — same P2028 risk as
+  // lib/actions/accounts.ts's syncOpeningBalanceTransaction: Supabase's
+  // pooled connection (pgbouncer transaction mode) can't reliably pin a
+  // session across an interactive transaction's round-trips, and it times
+  // out rather than committing. Ordered create-before-destroy on purpose:
+  // if a later step fails partway, the worst case is the old and new rule
+  // briefly overlapping (visible, recoverable duplicate transactions)
+  // rather than the old rule already closed and its future transactions
+  // already deleted with no replacement rule to regenerate them — silent,
+  // unrecoverable data loss.
+  const newRule = await prisma.recurringRule.create({
+    data: {
+      userId,
+      type: values.type,
+      amount: values.amount,
+      description: values.description,
+      ...accountFields(values),
+      intervalCount: oldRule.intervalCount,
+      intervalUnit: oldRule.intervalUnit,
+      startDate: values.date,
+      endDate: newEndDate !== undefined ? newEndDate : oldRule.endDate,
+      isActive: true,
+      supersedesRuleId: oldRule.id,
+    },
+  });
+
+  if (tagIds.length > 0) {
+    await prisma.recurringRuleTag.createMany({
+      data: tagIds.map((tagId) => ({ recurringRuleId: newRule.id, tagId })),
+      skipDuplicates: true,
     });
+  }
 
-    await tx.transaction.deleteMany({
-      where: { userId, recurringRuleId: oldRule.id, occurrenceDate: { gte: splitDate } },
-    });
+  await prisma.recurringRule.update({
+    where: { id: oldRule.id },
+    data: { endDate: dayBefore, isActive: false },
+  });
 
-    const created = await tx.recurringRule.create({
-      data: {
-        userId,
-        type: values.type,
-        amount: values.amount,
-        description: values.description,
-        ...accountFields(values),
-        intervalCount: oldRule.intervalCount,
-        intervalUnit: oldRule.intervalUnit,
-        startDate: values.date,
-        endDate: newEndDate !== undefined ? newEndDate : oldRule.endDate,
-        isActive: true,
-        supersedesRuleId: oldRule.id,
-      },
-    });
-
-    if (tagIds.length > 0) {
-      await tx.recurringRuleTag.createMany({
-        data: tagIds.map((tagId) => ({ recurringRuleId: created.id, tagId })),
-        skipDuplicates: true,
-      });
-    }
-
-    return created;
+  await prisma.transaction.deleteMany({
+    where: { userId, recurringRuleId: oldRule.id, occurrenceDate: { gte: splitDate } },
   });
 
   await materializeRule(newRule, horizonDate());
