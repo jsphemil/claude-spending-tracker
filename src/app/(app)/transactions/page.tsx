@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/services/format";
 import { TransactionFilters } from "@/components/transactions/TransactionFilters";
 import { SummaryBand } from "@/components/transactions/SummaryBand";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
+import { EditIcon, DuplicateIcon, actionIconButton } from "@/components/transactions/action-icons";
 import { ensureMaterialized } from "@/lib/services/recurrence";
 import { monthRange, parseMonthParam, toDateKey } from "@/lib/services/calendar";
 import type { Prisma } from "@/generated/prisma/client";
@@ -128,11 +129,11 @@ export default async function TransactionsPage({
             {transactions.map((t) => (
               <li
                 key={t.id}
-                className="flex items-center justify-between border-t border-border py-3 first:border-t-0"
+                className="flex items-center justify-between gap-3 border-t border-border py-3 first:border-t-0"
               >
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
                 <span
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg"
                   style={{
                     backgroundColor:
                       (t.isOpeningBalance
@@ -144,15 +145,15 @@ export default async function TransactionsPage({
                 >
                   {t.isOpeningBalance ? "🏦" : t.type === "TRANSFER" ? "🔁" : t.category?.icon ?? "❓"}
                 </span>
-                <div>
-                  <p className="text-sm font-medium text-fg">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-fg">
                     {t.isOpeningBalance
                       ? `Opening balance · ${t.account?.name}`
                       : t.type === "TRANSFER"
                         ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
                         : `${t.category?.name ?? "Uncategorized"} · ${t.account?.name}`}
                   </p>
-                  <p className="text-xs text-fg-muted">
+                  <p className="truncate text-xs text-fg-muted">
                     {t.date.toISOString().slice(0, 10)}
                     {t.description ? ` · ${t.description}` : ""}
                     {t.recurringRuleId ? " · 🔁" : ""}
@@ -172,7 +173,7 @@ export default async function TransactionsPage({
                   )}
                 </div>
               </div>
-                <div className="flex items-center gap-4">
+                <div className="flex shrink-0 items-center gap-2">
                   <p
                     className={`font-data text-sm font-medium tabular-nums ${
                       t.type === "INCOME"
@@ -191,23 +192,29 @@ export default async function TransactionsPage({
                   {t.isOpeningBalance ? (
                     <Link
                       href={`/accounts/${t.accountId}/edit`}
-                      className="text-sm font-medium text-fg hover:underline"
+                      title="Edit account"
+                      aria-label="Edit account"
+                      className={actionIconButton}
                     >
-                      Edit account
+                      <EditIcon />
                     </Link>
                   ) : (
                     <>
                       <Link
                         href={`/transactions/new?duplicateId=${t.id}`}
-                        className="text-sm font-medium text-fg-muted hover:underline"
+                        title="Duplicate"
+                        aria-label="Duplicate transaction"
+                        className={actionIconButton}
                       >
-                        Duplicate
+                        <DuplicateIcon />
                       </Link>
                       <Link
                         href={`/transactions/${t.id}/edit`}
-                        className="text-sm font-medium text-fg hover:underline"
+                        title="Edit"
+                        aria-label="Edit transaction"
+                        className={actionIconButton}
                       >
-                        Edit
+                        <EditIcon />
                       </Link>
                       <DeleteTransactionButton
                         transactionId={t.id}

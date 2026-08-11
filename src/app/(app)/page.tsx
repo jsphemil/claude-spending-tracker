@@ -24,6 +24,7 @@ import { NetWorthRing } from "@/components/charts/NetWorthRing";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/nav/icons";
 import { CalendarMonthGrid } from "@/components/calendar/CalendarMonthGrid";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
+import { EditIcon, actionIconButton } from "@/components/transactions/action-icons";
 import { ensureMaterialized } from "@/lib/services/recurrence";
 
 export default async function DashboardPage({
@@ -431,22 +432,22 @@ export default async function DashboardPage({
               {recentTransactions.map((t) => (
                 <li
                   key={t.id}
-                  className="flex items-center justify-between border-t border-border py-2.5 first:border-t-0"
+                  className="flex items-center justify-between gap-3 border-t border-border py-2.5 first:border-t-0"
                 >
-                  <div>
-                    <p className="text-[13.5px] font-medium text-fg">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13.5px] font-medium text-fg">
                       {t.isOpeningBalance
                         ? `🏦 Opening balance · ${t.account?.name}`
                         : t.type === "TRANSFER"
                           ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
                           : `${t.category?.name ?? "Uncategorized"} · ${t.account?.name}`}
                     </p>
-                    <p className="text-[11.5px] text-fg-subtle">
+                    <p className="truncate text-[11.5px] text-fg-subtle">
                       {t.date.toISOString().slice(0, 10)}
                       {t.recurringRuleId ? " · 🔁" : ""}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex shrink-0 items-center gap-1.5">
                     <p
                       className={`font-data text-[13.5px] font-semibold tabular-nums ${
                         t.type === "INCOME"
@@ -465,17 +466,21 @@ export default async function DashboardPage({
                     {t.isOpeningBalance ? (
                       <Link
                         href={`/accounts/${t.accountId}/edit`}
-                        className="text-xs font-medium text-fg-muted hover:underline"
+                        title="Edit account"
+                        aria-label="Edit account"
+                        className={actionIconButton}
                       >
-                        Edit account
+                        <EditIcon />
                       </Link>
                     ) : (
                       <>
                         <Link
                           href={`/transactions/${t.id}/edit`}
-                          className="text-xs font-medium text-fg-muted hover:underline"
+                          title="Edit"
+                          aria-label="Edit transaction"
+                          className={actionIconButton}
                         >
-                          Edit
+                          <EditIcon />
                         </Link>
                         <DeleteTransactionButton
                           transactionId={t.id}

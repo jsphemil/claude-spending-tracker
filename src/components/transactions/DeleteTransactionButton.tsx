@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { deleteTransaction } from "@/lib/actions/transactions";
+import { TrashIcon, actionIconButton } from "@/components/transactions/action-icons";
 
 export function DeleteTransactionButton({
   transactionId,
@@ -55,8 +56,8 @@ export function DeleteTransactionButton({
         }
       }}
     >
-      <button type="submit" className="text-sm font-medium text-danger hover:underline">
-        Delete
+      <button type="submit" title="Delete" aria-label="Delete transaction" className={`${actionIconButton} hover:text-danger`}>
+        <TrashIcon />
       </button>
     </form>
   );

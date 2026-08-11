@@ -18,6 +18,7 @@ import {
 import { resolveAccountSettings } from "@/lib/services/settings";
 import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
+import { EditIcon, DuplicateIcon, actionIconButton } from "@/components/transactions/action-icons";
 import { ensureMaterialized } from "@/lib/services/recurrence";
 import { addToBucket, sortedBuckets, type Bucket } from "@/lib/services/breakdown";
 import { CategoryPieChart } from "@/components/charts/CategoryPieChart";
@@ -494,17 +495,17 @@ export default async function AccountDetailPage({
               {visibleTransactions.map((t) => (
                 <li
                   key={t.id}
-                  className="flex items-center justify-between border-t border-border py-2.5 first:border-t-0"
+                  className="flex items-center justify-between gap-3 border-t border-border py-2.5 first:border-t-0"
                 >
-                  <div>
-                    <p className="text-[13.5px] font-medium text-fg">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13.5px] font-medium text-fg">
                       {t.isOpeningBalance
                         ? "🏦 Opening balance"
                         : t.type === "TRANSFER"
                           ? `${t.fromAccount?.name} → ${t.toAccount?.name}`
                           : (t.category?.name ?? "Uncategorized")}
                     </p>
-                    <p className="text-[11.5px] text-fg-subtle">
+                    <p className="truncate text-[11.5px] text-fg-subtle">
                       {t.date.toISOString().slice(0, 10)}
                       {t.recurringRuleId ? " · 🔁" : ""}
                     </p>
@@ -522,7 +523,7 @@ export default async function AccountDetailPage({
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex shrink-0 items-center gap-1.5">
                     <p
                       className={`font-data text-[13.5px] font-semibold tabular-nums ${
                         t.type === "INCOME"
@@ -538,23 +539,29 @@ export default async function AccountDetailPage({
                     {t.isOpeningBalance ? (
                       <Link
                         href={`/accounts/${account.id}/edit`}
-                        className="text-xs font-medium text-fg-muted hover:underline"
+                        title="Edit account"
+                        aria-label="Edit account"
+                        className={actionIconButton}
                       >
-                        Edit account
+                        <EditIcon />
                       </Link>
                     ) : (
                       <>
                         <Link
                           href={`/transactions/new?duplicateId=${t.id}`}
-                          className="text-xs font-medium text-fg-muted hover:underline"
+                          title="Duplicate"
+                          aria-label="Duplicate transaction"
+                          className={actionIconButton}
                         >
-                          Duplicate
+                          <DuplicateIcon />
                         </Link>
                         <Link
                           href={`/transactions/${t.id}/edit`}
-                          className="text-xs font-medium text-fg-muted hover:underline"
+                          title="Edit"
+                          aria-label="Edit transaction"
+                          className={actionIconButton}
                         >
-                          Edit
+                          <EditIcon />
                         </Link>
                         <DeleteTransactionButton
                           transactionId={t.id}
